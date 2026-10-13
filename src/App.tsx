@@ -80,6 +80,10 @@ import {
   workoutPlans,
 } from "./data/mockData";
 import profilePhoto from "./assets/manish-profile.svg";
+import gymPhoto1 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM (1).jpeg";
+import gymPhoto2 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM.jpeg";
+import gymPhoto3 from "./assets/WhatsApp Image 2026-10-13 at 1.51.41 PM (1).jpeg";
+import gymPhoto4 from "./assets/WhatsApp Image 2026-10-13 at 1.51.41 PM.jpeg";
 import { auth, db, firebaseEnabled } from "./lib/firebase";
 import type {
   MemberRecord,
@@ -114,6 +118,8 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const gymGallery = [gymPhoto1, gymPhoto2, gymPhoto3, gymPhoto4];
 
 const sidebarMenus: Record<
   Role,
@@ -211,6 +217,34 @@ function getRoleRoute(role: Role) {
   return "/admin/dashboard";
 }
 
+function resolveRoleFromEmail(email: string): Role {
+  const normalized = email.toLowerCase();
+  if (normalized.includes("admin")) return "gym_admin";
+  if (normalized.includes("trainer")) return "trainer";
+  return "member";
+}
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+};
+
+const INSTALL_PROMPT_DISMISSED_KEY = "petergym-install-popup-dismissed";
+
+function isPwaInstalled() {
+  if (typeof window === "undefined") return false;
+
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean(
+      (window.navigator as Navigator & { standalone?: boolean }).standalone,
+    )
+  );
+}
+
 function BrandLogo({
   mode = "full",
   className = "",
@@ -218,21 +252,42 @@ function BrandLogo({
   mode?: "full" | "mark" | "white";
   className?: string;
 }) {
+  if (mode === "mark") {
+    return (
+      <div
+        aria-label="Peter-GYM app logo"
+        className={`relative flex items-center justify-center overflow-hidden rounded-[20px] border border-violet-400/50 bg-[#090A0F] shadow-[0_0_0_1px_rgba(139,92,246,0.22),0_0_22px_rgba(139,92,246,0.45)] ${className}`}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.7),transparent_28%),radial-gradient(circle_at_70%_100%,rgba(52,211,153,0.5),transparent_34%),linear-gradient(135deg,#090A0F_0%,#141827_35%,#090A0F_100%)]" />
+        <div className="absolute inset-[7px] rounded-[16px] border border-violet-400/40 bg-[#0F131A]/80" />
+        <span
+          className="relative font-black tracking-[-0.18em] text-white"
+          style={{
+            fontSize: "clamp(1.15rem, 1vw + 0.8rem, 2.3rem)",
+            lineHeight: 1,
+          }}
+        >
+          P
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
-      aria-label="Peter-GYM app logo"
-      className={`relative flex items-center justify-center overflow-hidden rounded-[20px] border border-violet-400/50 bg-[#090A0F] shadow-[0_0_0_1px_rgba(139,92,246,0.22),0_0_22px_rgba(139,92,246,0.45)] ${className}`}
+      aria-label="Peter-GYM brand name"
+      className={`inline-flex items-center justify-center ${className}`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.7),transparent_28%),radial-gradient(circle_at_70%_100%,rgba(52,211,153,0.5),transparent_34%),linear-gradient(135deg,#090A0F_0%,#141827_35%,#090A0F_100%)]" />
-      <div className="absolute inset-[7px] rounded-[16px] border border-violet-400/40 bg-[#0F131A]/80" />
       <span
-        className="relative font-black tracking-[-0.18em] text-white"
+        className={`font-black tracking-[-0.08em] ${
+          mode === "white" ? "text-white" : "text-white"
+        }`}
         style={{
-          fontSize: "clamp(1.15rem, 1vw + 0.8rem, 2.3rem)",
+          fontSize: "clamp(1rem, 0.9vw + 0.8rem, 1.9rem)",
           lineHeight: 1,
         }}
       >
-        P
+        Peter-GYM
       </span>
     </div>
   );
@@ -257,17 +312,23 @@ function ProfileAvatar({
 function SplashIntroPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [countdown, setCountdown] = useState(12);
+  const [countdown, setCountdown] = useState(3);
   const didAdvanceRef = useRef(false);
-  const destination = user ? getRoleRoute(user.role) : "/login";
+  const destination = user ? getRoleRoute(user.role) : "/home";
 
   const advance = useCallback(() => {
     if (didAdvanceRef.current) return;
     didAdvanceRef.current = true;
+    sessionStorage.setItem("petergym-intro-seen", "true");
     navigate(destination, { replace: true });
   }, [destination, navigate]);
 
   useEffect(() => {
+    if (sessionStorage.getItem("petergym-intro-seen") === "true") {
+      navigate(destination, { replace: true });
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setCountdown((current) => {
         if (current <= 1) {
@@ -280,24 +341,24 @@ function SplashIntroPage() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [advance]);
+  }, [advance, destination, navigate]);
 
   return (
     <div className="min-h-screen bg-[#090A0F] px-4 py-5 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-1.25rem)] max-w-md items-center justify-center">
-        <div className="w-full rounded-[30px] border border-violet-400/20 bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.20),transparent_32%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.18),transparent_35%),#090A0F] p-4 shadow-[0_0_0_1px_rgba(139,92,246,0.12),0_25px_80px_rgba(15,17,24,0.9)] sm:p-5">
+      <div className="mx-auto flex min-h-[calc(100vh-1.25rem)] max-w-4xl items-center justify-center">
+        <div className="w-full overflow-hidden rounded-[32px] border border-violet-400/20 bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.24),transparent_28%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.18),transparent_32%),#090A0F] p-4 shadow-[0_0_0_1px_rgba(139,92,246,0.12),0_25px_80px_rgba(15,17,24,0.9)] sm:p-5 lg:p-7">
           <div className="mb-5 flex items-center justify-center gap-3">
             <BrandLogo mode="mark" className="h-12 w-12 sm:h-14 sm:w-14" />
             <div className="text-left">
               <div className="text-[9px] font-medium uppercase tracking-[0.32em] text-violet-200/80">
                 Peter-GYM
               </div>
-              <div className="mt-1 text-xs text-slate-400">Smart strength</div>
+              <div className="mt-1 text-xs text-slate-400">Welcome aboard</div>
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-violet-400/20 bg-slate-950/80 p-4 shadow-[0_0_30px_rgba(139,92,246,0.14)] backdrop-blur-sm sm:p-5">
-            <div className="relative mx-auto mb-5 flex h-52 w-52 items-center justify-center rounded-full border border-violet-400/30 bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.25),transparent_38%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.14),transparent_35%),#0A0D14] p-2 shadow-[0_0_40px_rgba(139,92,246,0.25)] sm:h-60 sm:w-60">
+          <div className="grid items-center gap-6 rounded-[28px] border border-violet-400/20 bg-slate-950/80 p-4 shadow-[0_0_30px_rgba(139,92,246,0.14)] backdrop-blur-md sm:p-5 lg:grid-cols-[0.82fr_1.18fr] lg:p-6">
+            <div className="relative mx-auto flex h-52 w-52 items-center justify-center rounded-full border border-violet-400/30 bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.25),transparent_38%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.14),transparent_35%),#0A0D14] p-2 shadow-[0_0_40px_rgba(139,92,246,0.25)] sm:h-60 sm:w-60">
               <img
                 src={profilePhoto}
                 alt="Er. Manish Kumar Yadav"
@@ -305,55 +366,795 @@ function SplashIntroPage() {
               />
             </div>
 
-            <div className="space-y-3 text-center">
+            <div className="space-y-4 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Elite trainer
+                Software Development Engineer
               </div>
-              <h2 className="text-[1.8rem] font-black tracking-tight text-white">
-                Er. Manish Kumar
-              </h2>
-              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-violet-200/80">
-                Software Engineer
-              </p>
-              <p className="text-sm text-slate-300">Peter-GYM</p>
-              <p className="mx-auto max-w-xs text-sm text-slate-400">
-                Building smarter fitness experiences through technology.
-              </p>
-            </div>
 
-            <div className="mt-5 space-y-3">
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-slate-400">
-                <span>Launching</span>
-                <span>{countdown}s</span>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight text-white sm:text-4xl">
+                  Er. Manish Kumar Yadav
+                </h2>
+                <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.28em] text-violet-200/80">
+                  Peter-GYM
+                </p>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 via-violet-400 to-emerald-400 transition-all duration-1000"
-                  style={{ width: `${(countdown / 12) * 100}%` }}
-                />
+
+              <p className="mx-auto max-w-xl text-sm text-slate-300 lg:mx-0">
+                “Building smarter fitness experiences through technology.”
+              </p>
+
+              <div className="mt-5 space-y-3">
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                  <span>Welcome</span>
+                  <span>{countdown}s</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-violet-400 to-emerald-400 transition-all duration-1000"
+                    style={{ width: `${(countdown / 3) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={advance}
+                  className="btn-secondary border-violet-400/30 bg-violet-500/10 text-violet-100 hover:border-violet-300/60"
+                >
+                  Skip Intro
+                </button>
+                <button type="button" onClick={advance} className="btn-primary">
+                  Continue to Website
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+function LandingPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname !== "/home") {
+      setShowInstallPrompt(false);
+      return;
+    }
+
+    if (isPwaInstalled()) {
+      setShowInstallPrompt(false);
+      return;
+    }
+
+    const wasDismissed =
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === "true";
+
+    if (wasDismissed) {
+      setShowInstallPrompt(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowInstallPrompt(true);
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+
+      if (location.pathname === "/home" && !isPwaInstalled()) {
+        const wasDismissed =
+          window.localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === "true";
+
+        if (!wasDismissed) {
+          setShowInstallPrompt(true);
+        }
+      }
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setShowInstallPrompt(false);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, "true");
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, [location.pathname]);
+
+  const handleInstallApp = async () => {
+    if (installPromptEvent) {
+      try {
+        await installPromptEvent.prompt();
+        const choice = await installPromptEvent.userChoice;
+        if (choice.outcome === "accepted") {
+          setShowInstallPrompt(false);
+          return;
+        }
+      } catch (error) {
+        console.warn("PWA install prompt failed", error);
+      }
+    }
+
+    setShowInstallPrompt(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, "true");
+    }
+  };
+
+  const handleDismissInstallPrompt = () => {
+    setShowInstallPrompt(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, "true");
+    }
+  };
+
+  const handleShowInstallPromptAgain = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(INSTALL_PROMPT_DISMISSED_KEY);
+    }
+    setShowInstallPrompt(true);
+  };
+
+  const handleDashboard = () => {
+    if (user) {
+      navigate(getRoleRoute(user.role));
+      return;
+    }
+    navigate("/login");
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/home");
+  };
+
+  const navItems = [
+    { label: "Home", href: "/home" },
+    { label: "Features", href: "#features" },
+    { label: "About Developer", href: "#about" },
+    { label: "Contact", href: "#contact" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#090A0F] text-white">
+      <header className="sticky top-0 z-50 border-b border-violet-400/10 bg-[#090A0F]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => navigate("/home")}
+            className="flex items-center gap-3"
+          >
+            <BrandLogo mode="mark" className="h-10 w-10 rounded-2xl" />
+            <div className="text-left">
+              <div className="text-sm font-bold tracking-wide text-white">
+                Peter-GYM
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">
+                Performance Club
+              </div>
+            </div>
+          </button>
+
+          <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
+            {navItems.map((item) =>
+              item.href.startsWith("#") ? (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="transition hover:text-white"
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => navigate(item.href)}
+                  className="transition hover:text-white"
+                >
+                  {item.label}
+                </button>
+              ),
+            )}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {!user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="hidden rounded-full border border-violet-400/30 bg-violet-500/5 px-4 py-2 text-sm font-medium text-violet-100 transition hover:border-violet-300/60 sm:inline-flex"
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="inline-flex rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-[#090A0F] shadow-[0_0_20px_rgba(139,92,246,0.45)] transition hover:brightness-110"
+                >
+                  Register
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleDashboard}
+                  className="hidden rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 sm:inline-flex"
+                >
+                  Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+                >
+                  Logout
+                </button>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen((value) => !value)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white md:hidden"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileNavOpen ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Menu className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {mobileNavOpen && (
+          <div className="border-t border-violet-400/10 bg-[#090A0F] px-4 py-3 md:hidden">
+            <div className="flex flex-col gap-2">
+              {navItems.map((item) =>
+                item.href.startsWith("#") ? (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      navigate(item.href);
+                      setMobileNavOpen(false);
+                    }}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-slate-200"
+                  >
+                    {item.label}
+                  </button>
+                ),
+              )}
+
               <button
                 type="button"
-                onClick={advance}
-                className="btn-secondary border-violet-400/30 bg-violet-500/10 text-violet-100 hover:border-violet-300/60"
-              >
-                Skip Intro
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="btn-primary"
+                onClick={() => {
+                  navigate("/login");
+                  setMobileNavOpen(false);
+                }}
+                className="mt-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-sm font-medium text-violet-100"
               >
                 Login
               </button>
             </div>
           </div>
+        )}
+      </header>
+
+      <main>
+        {location.pathname === "/home" && showInstallPrompt && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#05070b]/80 px-4 py-6 backdrop-blur-sm">
+            <div className="relative w-full max-w-md overflow-hidden rounded-[30px] border border-violet-400/20 bg-[#0b1017]/90 p-4 shadow-[0_0_0_1px_rgba(139,92,246,0.15),0_30px_80px_rgba(15,17,24,0.7)] ring-1 ring-white/10 sm:p-5">
+              <button
+                type="button"
+                onClick={handleDismissInstallPrompt}
+                aria-label="Close install prompt"
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center justify-center pt-2">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-violet-400/30 bg-gradient-to-br from-violet-500/20 via-slate-900 to-emerald-400/20 shadow-[0_0_26px_rgba(139,92,246,0.28)]">
+                  <BrandLogo mode="mark" className="h-12 w-12 rounded-[16px]" />
+                </div>
+              </div>
+
+              <div className="mt-5 text-center">
+                <h3 className="text-2xl font-black tracking-tight text-white">
+                  Install Peter-GYM
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Add Peter-GYM to your home screen for quick access to your gym
+                  dashboard anytime.
+                </p>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-500 to-emerald-400 px-4 py-3 text-sm font-bold text-[#090A0F] shadow-[0_0_24px_rgba(139,92,246,0.38)] transition hover:brightness-110 active:scale-[0.99]"
+                >
+                  Install App
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDismissInstallPrompt}
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+                >
+                  Maybe Later
+                </button>
+              </div>
+
+              {!installPromptEvent && (
+                <div className="mt-5 rounded-2xl border border-violet-400/15 bg-violet-500/5 p-3 text-center text-xs text-slate-300">
+                  Install isn’t supported on this browser yet. Open the browser
+                  menu and choose “Add to Home Screen” or “Install App”.
+                </div>
+              )}
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={handleShowInstallPromptAgain}
+                  className="text-[11px] uppercase tracking-[0.18em] text-violet-200/80 transition hover:text-violet-100"
+                >
+                  Show reminder again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(52,211,153,0.18),transparent_25%)]" />
+          <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:px-8 lg:py-20">
+            <div className="flex flex-col items-center justify-center text-center lg:items-start lg:text-left">
+              <span className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-violet-200">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Modern Gym Management
+              </span>
+
+              <h1 className="max-w-xl text-[2.1rem] font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Sculpt the body. Lead the gym.
+              </h1>
+
+              <p className="mt-5 max-w-xl text-sm text-slate-300 sm:text-base lg:text-lg">
+                Peter-GYM brings high-performance training culture and smart gym
+                operations together so athletes push harder, teams stay
+                organized, and every member can track visible progress with
+                premium, real-world systems.
+              </p>
+
+              <div className="mt-8 flex flex-wrap justify-center gap-4 lg:justify-start">
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="inline-flex rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 px-5 py-3 text-sm font-semibold text-[#090A0F] shadow-[0_0_26px_rgba(139,92,246,0.45)] transition hover:brightness-110 sm:px-6"
+                >
+                  Get Started
+                </button>
+                <a
+                  href="#features"
+                  className="inline-flex rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-violet-400/30 hover:bg-violet-500/5 sm:px-6"
+                >
+                  Explore Features
+                </a>
+              </div>
+
+              <div className="mt-10 grid w-full max-w-lg grid-cols-3 gap-3">
+                {[
+                  { label: "Members", value: "5.6K" },
+                  { label: "Retention", value: "99.2%" },
+                  { label: "Growth", value: "45%" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-violet-400/10 bg-white/5 p-3 text-center backdrop-blur-sm"
+                  >
+                    <div className="text-lg font-bold text-white sm:text-xl">
+                      {item.value}
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                      {item.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-violet-400/20 bg-[#11141C] p-3 shadow-[0_30px_80px_rgba(15,17,24,0.7)] sm:rounded-[32px] sm:p-4">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.25),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(52,211,153,0.2),transparent_28%)]" />
+                <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#141823] p-3 sm:rounded-[24px] sm:p-4">
+                  <div className="relative overflow-hidden rounded-[18px] sm:rounded-[20px]">
+                    <img
+                      src={gymGallery[1]}
+                      alt="Peter-GYM hero training scene"
+                      className="h-[260px] w-full rounded-[18px] object-cover object-center sm:h-[460px] [object-position:center_24%] scale-[1.08]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/10 to-transparent" />
+                  </div>
+
+                  <div className="absolute left-3 top-3 rounded-2xl border border-violet-400/20 bg-[#090A0F]/80 p-2.5 shadow-lg backdrop-blur-md sm:left-8 sm:top-8 sm:p-3">
+                    <div className="text-[9px] uppercase tracking-[0.24em] text-slate-400 sm:text-[10px]">
+                      Body score
+                    </div>
+                    <div className="mt-2 text-xl font-bold text-white sm:text-2xl">
+                      88%
+                    </div>
+                    <div className="mt-2 h-2 w-20 overflow-hidden rounded-full bg-white/5 sm:w-28">
+                      <div className="h-full w-[88%] rounded-full bg-gradient-to-r from-violet-500 to-emerald-400" />
+                    </div>
+                  </div>
+
+                  <div className="absolute right-3 bottom-3 rounded-2xl border border-emerald-400/20 bg-[#090A0F]/80 p-2.5 shadow-lg backdrop-blur-md sm:right-8 sm:bottom-8 sm:p-3">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 sm:text-[10px]">
+                      Weekly gain
+                    </div>
+                    <div className="mt-2 text-xl font-bold text-white sm:text-2xl">
+                      +18.2%
+                    </div>
+                    <div className="mt-1 text-[10px] text-emerald-300 sm:text-xs">
+                      strength & definition
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mb-8 text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-violet-200/80">
+              Body transformation
+            </p>
+            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+              Precision training for a sharper, stronger physique
+            </h2>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {[
+              {
+                badge: "Cut & define",
+                title: "Lean strength",
+                description:
+                  "Build a tighter physique with disciplined programming and measurable progress.",
+                image: gymGallery[2],
+              },
+              {
+                badge: "Mass drive",
+                title: "Power build",
+                description:
+                  "Train for explosive strength, size, and confidence with guided performance blocks.",
+                image: gymGallery[1],
+              },
+              {
+                badge: "Elite routine",
+                title: "Performance mode",
+                description:
+                  "Turn repetition into results with premium coaching and a stronger training rhythm.",
+                image: gymGallery[3],
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="group overflow-hidden rounded-[30px] border border-violet-400/10 bg-[#11141B] shadow-[0_20px_60px_rgba(15,17,24,0.5)] transition duration-300 hover:-translate-y-1 hover:border-violet-400/30"
+              >
+                <div className="relative h-[440px] overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105 grayscale-[0.08] [object-position:center_20%]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/20 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <span className="inline-flex rounded-full border border-white/10 bg-[#090A0F]/55 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-violet-100 backdrop-blur-sm">
+                      {item.badge}
+                    </span>
+                    <h3 className="mt-3 text-2xl font-bold text-white">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section
+          id="features"
+          className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+        >
+          <div className="mb-10 text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-violet-200/80">
+              Features
+            </p>
+            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+              Everything your gym needs to grow
+            </h2>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                title: "Member Management",
+                icon: Users,
+                desc: "Track members, onboarding, renewals, and engagement at a glance.",
+              },
+              {
+                title: "Membership Plans",
+                icon: CreditCard,
+                desc: "Build premium membership tiers and keep billing simple.",
+              },
+              {
+                title: "Attendance Tracking",
+                icon: CalendarDays,
+                desc: "Monitor check-ins and studio activity in real time.",
+              },
+              {
+                title: "Workout Management",
+                icon: Dumbbell,
+                desc: "Create plans, assign routines, and track performance.",
+              },
+              {
+                title: "Trainer Management",
+                icon: ShieldCheck,
+                desc: "Coordinate trainers, schedules, and member assignments.",
+              },
+              {
+                title: "Classes and Scheduling",
+                icon: Bell,
+                desc: "Plan sessions, capacity, and events with zero complexity.",
+              },
+              {
+                title: "Payments and Reports",
+                icon: TrendingUp,
+                desc: "See revenue, collect payments, and analyze growth trends.",
+              },
+              {
+                title: "Role-Based Dashboards",
+                icon: LayoutDashboard,
+                desc: "Deliver optimized experiences for admin, trainer, and member roles.",
+              },
+            ].map(({ title, icon: Icon, desc }) => (
+              <div
+                key={title}
+                className="group rounded-[24px] border border-violet-400/10 bg-[#11141B] p-5 transition duration-300 hover:-translate-y-1 hover:border-violet-400/30 hover:shadow-[0_18px_40px_rgba(139,92,246,0.12)]"
+              >
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-emerald-400/20 text-violet-100 ring-1 ring-violet-400/20">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-y border-violet-400/10 bg-[#0d0f15]">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="mb-10 text-center">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-violet-200/80">
+                How it works
+              </p>
+              <h2 className="mt-3 text-3xl font-bold text-white">
+                Start building your fitness system in minutes
+              </h2>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-3">
+              {[
+                {
+                  step: "01",
+                  title: "Register your account",
+                  desc: "Create your gym profile and get your personalized workspace ready in a few clicks.",
+                },
+                {
+                  step: "02",
+                  title: "Find or join a gym",
+                  desc: "Connect with your gym, manage memberships, and organize your routine around real needs.",
+                },
+                {
+                  step: "03",
+                  title: "Manage your fitness journey",
+                  desc: "Track workouts, attendance, schedules, and progress all from one dashboard.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.step}
+                  className="rounded-[26px] border border-violet-400/10 bg-[#11141B] p-6 text-center"
+                >
+                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-emerald-400 text-sm font-black text-[#090A0F]">
+                    {item.step}
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="rounded-[30px] border border-violet-400/10 bg-[linear-gradient(135deg,rgba(139,92,246,0.12),rgba(52,211,153,0.08),rgba(17,20,27,1))] p-8 text-center shadow-[0_0_0_1px_rgba(139,92,246,0.06)]">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-violet-200/80">
+              Get started
+            </p>
+            <h2 className="mt-4 text-3xl font-bold text-white sm:text-4xl">
+              Build a stronger, smarter gym experience.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base text-slate-300">
+              Whether you're running a gym or joining one, Peter-GYM gives every
+              stakeholder the tools to perform better, plan smarter, and stay
+              motivated.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate("/register")}
+                className="inline-flex rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 px-6 py-3 text-sm font-semibold text-[#090A0F]"
+              >
+                Get Started
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="inline-flex rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-violet-400/30"
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer
+        id="contact"
+        className="border-t border-violet-400/10 bg-[#090A0F]"
+      >
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-slate-300 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.9fr] lg:px-8">
+          <div>
+            <div className="mb-3 flex items-center gap-3">
+              <BrandLogo mode="mark" className="h-9 w-9 rounded-xl" />
+              <div>
+                <div className="font-semibold text-white">Peter-GYM</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                  Smarter fitness
+                </div>
+              </div>
+            </div>
+            <p className="max-w-xs text-sm leading-6 text-slate-400">
+              Built to streamline operations, improve member experience, and
+              help your gym grow sustainably.
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold text-white">
+              Quick links
+            </div>
+            <div className="space-y-2 text-slate-400">
+              <button
+                type="button"
+                onClick={() => navigate("/home")}
+                className="block text-left hover:text-white"
+              >
+                Home
+              </button>
+              <a href="#features" className="block hover:text-white">
+                Features
+              </a>
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="block text-left hover:text-white"
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/register")}
+                className="block text-left hover:text-white"
+              >
+                Register
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold text-white">
+              Developer
+            </div>
+            <div className="space-y-2 text-slate-400">
+              <a
+                href="https://roomspot.manish25er.workers.dev/portfolio"
+                target="_blank"
+                rel="noreferrer"
+                className="block hover:text-white"
+              >
+                Portfolio
+              </a>
+              <a
+                href="mailto:manish25er@gmail.com"
+                className="block hover:text-white"
+              >
+                manish25er@gmail.com
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold text-white">Contact</div>
+            <div className="space-y-2 text-slate-400">
+              <a
+                href="mailto:manish25er@gmail.com"
+                className="block hover:text-white"
+              >
+                manish25er@gmail.com
+              </a>
+              <a href="tel:+916283092662" className="block hover:text-white">
+                +91 6283092662
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div className="border-t border-violet-400/10 py-4 text-center text-xs text-slate-400">
+          © 2026 Peter-GYM. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }
@@ -391,7 +1192,9 @@ function AuthProvider({ children }: { children: ReactNode }) {
             firebaseUser.email?.split("@")[0] ||
             "Gym User",
           email: firebaseUser.email || profile?.email || "",
-          role: (profile?.role as Role) || "member",
+          role:
+            (profile?.role as Role) ||
+            resolveRoleFromEmail(firebaseUser.email || ""),
           avatar:
             profile?.avatar ||
             (firebaseUser.email
@@ -436,7 +1239,9 @@ function AuthProvider({ children }: { children: ReactNode }) {
             result.user.email?.split("@")[0] ||
             "Gym User",
           email: result.user.email || profile?.email || email,
-          role: (profile?.role as Role) || "member",
+          role:
+            (profile?.role as Role) ||
+            resolveRoleFromEmail(result.user.email || email),
           avatar:
             profile?.avatar ||
             (result.user.email
@@ -478,6 +1283,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     role: Role = "member",
   ): Promise<UserSession | null> => {
     const sanitizedName = name.trim() || "Gym Member";
+    const normalizedRole: Role = role === "member" ? "member" : "member";
     const initials =
       sanitizedName
         .split(" ")
@@ -497,7 +1303,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
           id: result.user.uid,
           name: sanitizedName,
           email: result.user.email || email,
-          role,
+          role: normalizedRole,
           avatar: initials,
           gymId: "gym_1",
         };
@@ -519,7 +1325,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       id: `demo-${Date.now()}`,
       name: sanitizedName,
       email,
-      role,
+      role: normalizedRole,
       avatar: initials,
       gymId: "gym_1",
     };
@@ -852,8 +1658,7 @@ function DashboardHeroBanner() {
       <div
         className="absolute inset-0 bg-cover bg-center opacity-20"
         style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80')",
+          backgroundImage: `url(${gymGallery[2]})`,
         }}
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(168,85,247,0.42),transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(52,211,153,0.28),transparent_28%)]" />
@@ -925,7 +1730,7 @@ function DashboardHeroBanner() {
             <div className="mt-3 flex items-center gap-3">
               <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10 bg-[#1c2430]">
                 <img
-                  src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=400&q=80"
+                  src={gymGallery[1]}
                   alt="Gym training"
                   className="h-full w-full object-cover"
                 />
@@ -3264,7 +4069,6 @@ function RegisterPage() {
   const [name, setName] = useState("Er. Manish Kumar Yadav");
   const [email, setEmail] = useState("member@petergym.local");
   const [password, setPassword] = useState("demo1234");
-  const [role, setRole] = useState<Role>("member");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -3279,7 +4083,7 @@ function RegisterPage() {
     setIsSubmitting(true);
     setError("");
 
-    const session = await register(name, email, password, role);
+    const session = await register(name, email, password);
     if (!session) {
       setError(
         "Unable to create the account. Please check the details and try again.",
@@ -3341,19 +4145,6 @@ function RegisterPage() {
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Role</span>
-            <select
-              className="input"
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-            >
-              <option value="member">Member</option>
-              <option value="trainer">Trainer</option>
-              <option value="gym_admin">Gym Admin</option>
-            </select>
-          </label>
-
           {error && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {error}
@@ -3392,15 +4183,6 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    const saved = localStorage.getItem("gymlane-theme");
-    return saved === "light" ? "light" : "dark";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("gymlane-theme", theme);
-  }, [theme]);
 
   if (user) {
     return <Navigate to={getRoleRoute(user.role)} replace />;
@@ -3424,209 +4206,97 @@ function LoginPage() {
   };
 
   return (
-    <div
-      className={`${theme === "dark" ? "theme-dark" : "theme-light"} min-h-screen bg-gym-bg px-3 py-4 sm:px-4 md:px-6 lg:px-8`}
-    >
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden rounded-[28px] border border-gym-border bg-gym-card/80 shadow-soft lg:flex-row">
-        <div className="relative hidden flex-1 overflow-hidden border-b border-gym-border bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(52,211,153,0.12),transparent_22%),linear-gradient(135deg,#0B0D11,#11141A_45%,#151821)] p-6 md:p-8 lg:flex lg:flex-col lg:justify-between">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.02),transparent)]" />
-          <div className="relative z-10 flex items-center gap-3">
-            <BrandLogo mode="mark" className="h-11 w-11 rounded-2xl" />
-            <BrandLogo mode="full" className="h-8 w-auto" />
+    <div className="flex min-h-screen items-center justify-center bg-[#090A0F] px-4 py-8 sm:px-6">
+      <div className="w-full max-w-md rounded-[28px] border border-violet-400/20 bg-slate-950/80 p-5 shadow-[0_0_0_1px_rgba(139,92,246,0.12),0_20px_60px_rgba(15,17,24,0.8)] backdrop-blur-md sm:p-7">
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10">
+            <BrandLogo mode="mark" className="h-8 w-8" />
           </div>
-
-          <div className="relative z-10 space-y-5">
-            <div className="inline-flex rounded-full border border-gym-border bg-gym-panel/80 px-3 py-1 text-[10px] uppercase tracking-[0.26em] text-gym-accent">
-              Gym Peters
-            </div>
-            <h2 className="max-w-md text-4xl font-semibold leading-tight text-gym-text">
-              Smarter operations for high-performing gyms.
-            </h2>
-            <p className="max-w-md text-base text-gym-muted">
-              Track members, staff, payments, attendance, and membership growth
-              from one premium operating dashboard.
-            </p>
-          </div>
-
-          <div className="relative z-10 grid gap-3 sm:grid-cols-2">
-            <div className="glass-card p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-gym-muted">
-                Occupancy
-              </p>
-              <div className="mt-3 flex items-end justify-between">
-                <span className="text-3xl font-semibold text-gym-text">
-                  87%
-                </span>
-                <span className="text-xs text-gym-success">+6.2%</span>
-              </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-gym-panel">
-                <div className="h-full w-[87%] rounded-full bg-gym-accent" />
-              </div>
-            </div>
-            <div className="glass-card p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-gym-muted">
-                This week
-              </p>
-              <div className="mt-3 flex items-end justify-between">
-                <span className="text-3xl font-semibold text-gym-text">
-                  1,248
-                </span>
-                <span className="text-xs text-gym-success">+18%</span>
-              </div>
-              <p className="mt-4 text-xs text-gym-muted">
-                Check-ins and bookings
-              </p>
-            </div>
-          </div>
+          <BrandLogo mode="full" className="h-7 w-auto" />
         </div>
 
-        <div className="flex w-full items-center justify-center bg-gym-panel p-4 sm:p-6 lg:w-[480px] lg:p-8">
-          <div className="w-full max-w-md">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center justify-center lg:hidden">
-                <BrandLogo mode="full" className="h-9 w-auto" />
-              </div>
+        <div className="mb-6 text-center">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-violet-200/80">
+            Welcome back
+          </p>
+          <h2 className="mt-2 text-3xl font-bold text-white">Sign in</h2>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Email address</span>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                className="input pl-10"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@petergym.com"
+              />
+            </div>
+          </label>
+
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Password</span>
+            <div className="relative">
+              <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                className="input pl-10 pr-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
               <button
                 type="button"
-                className="ml-auto inline-flex items-center justify-center rounded-xl border border-gym-border bg-gym-card p-2.5 text-gym-text/80"
-                onClick={() =>
-                  setTheme((current) => (current === "dark" ? "light" : "dark"))
-                }
-                aria-label="Toggle theme"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label="Toggle password visibility"
               >
-                {theme === "dark" ? (
-                  <SunMedium className="h-4 w-4" />
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <MoonStar className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
+          </label>
 
-            <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.2em] text-gym-muted">
-                Welcome back
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold text-gym-text">
-                Sign in
-              </h2>
-              <p className="mt-2 text-sm text-gym-muted">
-                Sign in to manage your fitness journey.
-              </p>
+          {error && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {error}
             </div>
+          )}
 
-            <form onSubmit={submit} className="space-y-4">
-              <label className="block space-y-2 text-sm text-gym-muted">
-                <span>Email address</span>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gym-muted" />
-                  <input
-                    type="email"
-                    className="input pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                  />
-                </div>
-              </label>
-
-              <label className="block space-y-2 text-sm text-gym-muted">
-                <span>Password</span>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gym-muted" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="input pl-10 pr-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gym-muted transition hover:text-gym-text"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </label>
-
-              {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between gap-3 text-sm text-gym-muted">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-gym-accent"
-                  />
-                  <span>Remember me</span>
-                </label>
-                <a
-                  href="/forgot-password"
-                  className="font-medium text-gym-accent hover:underline"
-                >
-                  Forgot password?
-                </a>
-              </div>
-
-              <button
-                type="submit"
-                className="btn-primary w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
-
-            <div className="mt-6 rounded-2xl border border-gym-border bg-gym-panel p-4 text-xs text-gym-muted">
-              <p className="font-medium text-gym-text">
-                Development demo accounts
-              </p>
-              <div className="mt-2 space-y-1.5">
-                <p>Super Admin: superadmin@gymflow.local / demo1234</p>
-                <p>Gym Admin: admin@gymflow.local / demo1234</p>
-                <p>Trainer: trainer@gymflow.local / demo1234</p>
-                <p>Member: member@gymflow.local / demo1234</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gym-muted">
-              <button
-                type="button"
-                onClick={() => navigate("/register")}
-                className="font-medium text-gym-accent hover:underline"
-              >
-                Register
-              </button>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => navigate("/intro")}
-                className="font-medium text-gym-accent hover:underline"
-              >
-                Intro screen
-              </button>
-            </div>
-
-            <p className="mt-4 text-center text-sm text-gym-muted">
-              Need access?{" "}
-              <a
-                href="/login"
-                className="font-medium text-gym-accent hover:underline"
-              >
-                Contact the gym administrator
-              </a>
-            </p>
+          <div className="flex items-center justify-end text-sm">
+            <a
+              href="/forgot-password"
+              className="font-medium text-violet-300 hover:underline"
+            >
+              Forgot password?
+            </a>
           </div>
-        </div>
+
+          <button
+            type="submit"
+            className="btn-primary w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-sm text-slate-300">
+          Don’t have an account?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="font-semibold text-violet-300 underline underline-offset-2"
+          >
+            Register
+          </button>
+        </p>
       </div>
     </div>
   );
@@ -3720,11 +4390,13 @@ function NotFoundPage() {
 
 function AppEntry() {
   const { user } = useAuth();
-  return user ? (
-    <Navigate to={getRoleRoute(user.role)} replace />
-  ) : (
-    <Navigate to="/intro" replace />
-  );
+
+  if (user) {
+    return <Navigate to={getRoleRoute(user.role)} replace />;
+  }
+
+  const introSeen = sessionStorage.getItem("petergym-intro-seen") === "true";
+  return <Navigate to={introSeen ? "/home" : "/intro"} replace />;
 }
 
 function App() {
@@ -3733,6 +4405,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AppEntry />} />
         <Route path="/intro" element={<SplashIntroPage />} />
+        <Route path="/home" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
