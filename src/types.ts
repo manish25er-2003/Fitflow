@@ -72,10 +72,19 @@ export interface AttendanceRecord {
   id: string;
   memberId: string;
   memberName: string;
+  memberEmail?: string;
+  gymId?: string;
+  userId?: string;
   date: string;
   checkIn: string;
   checkOut?: string;
+  duration?: string;
+  durationMinutes?: number;
   status: "Checked In" | "Checked Out";
+  checkInTimestamp?: any;
+  checkOutTimestamp?: any;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface TrainerRecord {

@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        getUserData().role == 'super_admin' ||
+        request.auth.token.role == 'super_admin'
+      );
+    }
+
+    function isTrainer() {
+      return isAuthenticated() && (
+        getUserData().role == 'trainer' ||
+        request.auth.token.role == 'trainer'
+      );
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Attendance Collection
+    match /attendance/{attendanceId} {
+      // 1. Members can read only their own attendance records
+      //    Admins can read records for their gym (or all if super_admin)
+      //    Trainers can read records for their assigned gym
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        (isTrainer() && resource.data.gymId == getUserData().gymId)
+      );
+
+      // 2. Members can ONLY create their own check-in record
+      //    - uid must match request.auth.uid (no spoofing)
+      //    - status must be 'Checked In'
+      //    - server timestamp enforced
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'Checked In' &&
+        request.resource.data.checkInTimestamp == request.time;
+
+      // 3. Members can ONLY update their own active record to check out
+      //    - record owner must match request.auth.uid
+      //    - status transitions from 'Checked In' to 'Checked Out'
+      //    - server timestamp enforced for checkout
+      //    - cannot alter userId or gymId
+      allow update: if isAuthenticated() && (
+        (
+          resource.data.userId == request.auth.uid &&
+          resource.data.status == 'Checked In' &&
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.status == 'Checked Out' &&
+          request.resource.data.checkOutTimestamp == request.time
+        ) ||
+        isAdmin()
+      );
+
+      // 4. Only admins can delete attendance records
+      allow delete: if isAdmin();
+    }
+  }
+}
+

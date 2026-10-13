@@ -1,5 +1,15 @@
-const CACHE_NAME = "petergym-v1";
-const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
+const CACHE_NAME = "petergym-v2";
+const APP_SHELL = [
+  "/",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/icons/icon-192x192.png",
+  "/icons/icon-512x512.png",
+  "/icons/icon-maskable-192x192.png",
+  "/icons/icon-maskable-512x512.png",
+  "/apple-touch-icon.png",
+  "/favicon.ico",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

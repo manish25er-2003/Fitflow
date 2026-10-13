@@ -19,10 +19,12 @@ import {
   useNavigate,
 } from "react-router-dom";
 import {
+  AlertCircle,
   Bell,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  Clock,
   CreditCard,
   Dumbbell,
   Eye,
@@ -30,6 +32,7 @@ import {
   FileText,
   LayoutDashboard,
   LockKeyhole,
+  LogIn,
   LogOut,
   Mail,
   Menu,
@@ -40,6 +43,7 @@ import {
   Signature,
   Sparkles,
   SunMedium,
+  Timer,
   TrendingUp,
   Users,
   WalletCards,
@@ -88,7 +92,23 @@ import dumbbellImage from "/public/gym/dumbbell-1.jpg";
 import machineImage from "/public/gym/machine-1.jpg";
 import strengthImage from "/public/gym/strength-1.jpg";
 import { auth, db, firebaseEnabled } from "./lib/firebase";
+import {
+  ATTENDANCE_UPDATED_EVENT,
+  checkInMember,
+  checkOutMember,
+  findActiveSession,
+  findTodayLatestSession,
+  formatLiveTimer,
+  formatLocalTimeString,
+  getLocalDateString,
+  getLocalAttendanceRecords,
+  getWeeklyAttendanceData,
+  parseTimestampToDate,
+  subscribeAttendance,
+  saveLocalAttendanceRecords,
+} from "./lib/attendanceService";
 import type {
+  AttendanceRecord,
   MemberRecord,
   MemberStatus,
   PaymentRecord,
@@ -124,6 +144,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const gymGallery = [gymPhoto1, gymPhoto2, gymPhoto3, gymPhoto4];
 const equipmentGallery = [dumbbellImage, machineImage, strengthImage];
+const GYM_DATA_UPDATED_EVENT = "petergym-data-updated";
+let sharedMembers = [...seedMembers];
+let sharedPayments = [...paymentRecords];
+let sharedAttendance = getLocalAttendanceRecords();
+
+function emitGymDataUpdate() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(GYM_DATA_UPDATED_EVENT));
+  }
+}
+
+function useSharedGymData() {
+  const [members, setMembers] = useState(() => [...sharedMembers]);
+  const [payments, setPayments] = useState(() => [...sharedPayments]);
+  const [attendance, setAttendance] = useState(() => getLocalAttendanceRecords());
+
+  useEffect(() => {
+    const syncData = () => {
+      setMembers([...sharedMembers]);
+      setPayments([...sharedPayments]);
+      setAttendance(getLocalAttendanceRecords());
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener(GYM_DATA_UPDATED_EVENT, syncData);
+      window.addEventListener(ATTENDANCE_UPDATED_EVENT, syncData);
+      return () => {
+        window.removeEventListener(GYM_DATA_UPDATED_EVENT, syncData);
+        window.removeEventListener(ATTENDANCE_UPDATED_EVENT, syncData);
+      };
+    }
+  }, []);
+
+  return { members, setMembers, payments, setPayments, attendance, setAttendance };
+}
 
 const sidebarMenus: Record<
   Role,
@@ -408,7 +463,6 @@ function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -572,24 +626,28 @@ function LandingPage() {
             )}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {!user ? (
-              <>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="hidden rounded-full border border-violet-400/30 bg-violet-500/5 px-4 py-2 text-sm font-medium text-violet-100 transition hover:border-violet-300/60 sm:inline-flex"
+                  className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-violet-400/35 bg-[#111827]/80 px-2.5 py-2 text-[11px] font-semibold text-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.20)] transition hover:-translate-y-0.5 hover:border-violet-300/70 hover:bg-violet-500/10 sm:gap-2 sm:px-4 sm:text-sm"
                 >
-                  Login
+                  <span className="absolute inset-0 bg-gradient-to-r from-violet-500/8 to-transparent opacity-0 transition group-hover:opacity-100" />
+                  <LockKeyhole className="relative h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="relative">Login</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/register")}
-                  className="inline-flex rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-[#090A0F] shadow-[0_0_20px_rgba(139,92,246,0.45)] transition hover:brightness-110"
+                  className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-violet-500 via-violet-500 to-emerald-400 px-2.5 py-2 text-[11px] font-bold text-[#090A0F] shadow-[0_8px_22px_rgba(139,92,246,0.45)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(52,211,153,0.35)] sm:gap-2 sm:px-4 sm:text-sm"
                 >
-                  Register
+                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.4),transparent_55%)]" />
+                  <Sparkles className="relative h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="relative">Register</span>
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <button
@@ -608,63 +666,8 @@ function LandingPage() {
                 </button>
               </>
             )}
-
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen((value) => !value)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white md:hidden"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileNavOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
-            </button>
           </div>
         </div>
-
-        {mobileNavOpen && (
-          <div className="border-t border-violet-400/10 bg-[#090A0F] px-4 py-3 md:hidden">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) =>
-                item.href.startsWith("#") ? (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileNavOpen(false)}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => {
-                      navigate(item.href);
-                      setMobileNavOpen(false);
-                    }}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-slate-200"
-                  >
-                    {item.label}
-                  </button>
-                ),
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  navigate("/login");
-                  setMobileNavOpen(false);
-                }}
-                className="mt-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-sm font-medium text-violet-100"
-              >
-                Login
-              </button>
-            </div>
-          </div>
-        )}
       </header>
 
       <main>
@@ -681,8 +684,12 @@ function LandingPage() {
               </button>
 
               <div className="flex items-center justify-center pt-2">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-violet-400/30 bg-gradient-to-br from-violet-500/20 via-slate-900 to-emerald-400/20 shadow-[0_0_26px_rgba(139,92,246,0.28)]">
-                  <BrandLogo mode="mark" className="h-12 w-12 rounded-[16px]" />
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] border border-violet-400/30 bg-[#090A0F] shadow-[0_0_26px_rgba(139,92,246,0.35)]">
+                  <img
+                    src="/icons/icon-192x192.png"
+                    alt="Peter-GYM Icon"
+                    className="h-full w-full rounded-[20px] object-cover"
+                  />
                 </div>
               </div>
 
@@ -799,7 +806,7 @@ function LandingPage() {
                     <img
                       src="/gym/hero.jpeg"
                       alt="Peter-GYM bodybuilder hero image"
-                      className="h-[260px] w-full rounded-[18px] object-cover object-center sm:h-[460px] [object-position:center_8%] scale-[1.12] contrast-[1.08] saturate-[0.9] -translate-y-3 sm:-translate-y-6"
+                      className="h-[300px] w-full rounded-[18px] object-cover object-center sm:h-[500px] lg:h-[560px] [object-position:center_8%] scale-[1.12] contrast-[1.08] saturate-[0.9] -translate-y-4 sm:-translate-y-8"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/25 to-[#090A0F]/10" />
                   </div>
@@ -1444,13 +1451,14 @@ function AppShell() {
           </nav>
         </aside>
 
-        <div className="flex flex-1 flex-col">
-          <header className="native-toolbar px-3 py-3 sm:px-4 md:px-6">
+        <div className="flex min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
+          <header className="native-toolbar px-3.5 py-3 sm:px-4 md:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <button
                   className="rounded-xl border border-gym-border bg-gym-panel p-2.5 lg:hidden"
                   onClick={() => setMobileMenuOpen((v) => !v)}
+                  aria-label="Open navigation menu"
                 >
                   <Menu className="h-4 w-4" />
                 </button>
@@ -1515,7 +1523,7 @@ function AppShell() {
             </div>
           </header>
 
-          <main className="min-w-0 flex-1 overflow-auto p-3 pb-24 sm:p-4 sm:pb-6 md:p-6">
+          <main className="min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden p-3.5 pb-24 sm:p-4 sm:pb-6 md:p-6">
             {pathname === "/" ? (
               <Navigate to={getRoleRoute(user.role)} replace />
             ) : null}
@@ -1530,21 +1538,29 @@ function AppShell() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-30 w-72 -translate-x-full border-r border-gym-border bg-gym-panel shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-200 lg:hidden ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-30 w-[82%] max-w-[320px] -translate-x-full border-r border-violet-400/10 bg-[#0d1018]/90 shadow-[0_30px_80px_rgba(15,17,24,0.85)] backdrop-blur-2xl transition-transform duration-200 lg:hidden ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between border-b border-gym-border px-4 py-3">
+        <div className="flex items-center justify-between border-b border-violet-400/10 px-4 py-4">
           <div className="flex items-center gap-3">
-            <BrandLogo mode="mark" className="h-8 w-8 rounded-xl" />
-            <div className="text-sm font-semibold text-gym-text">Peter-GYM</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10">
+              <BrandLogo mode="mark" className="h-7 w-7 rounded-xl" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-white">Peter-GYM</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                Performance club
+              </div>
+            </div>
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-lg p-1.5 text-gym-muted transition hover:bg-gym-card hover:text-gym-text"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+            aria-label="Close navigation menu"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="space-y-1.5 p-3">
+        <nav className="space-y-3 p-4">
           {menu.map(({ to, label, icon: Icon }) => {
             const isLogout = label === "Logout";
             return (
@@ -1552,7 +1568,7 @@ function AppShell() {
                 key={to}
                 to={to === "/login" ? "#" : to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${isActive ? "border border-violet-400/30 bg-violet-500/10 text-violet-200" : "text-gym-text/75 hover:bg-gym-card hover:text-gym-text"} ${isLogout ? "mt-2 border border-red-500/20 bg-red-500/5 text-red-200 hover:bg-red-500/10" : ""}`
+                  `flex items-center gap-3 rounded-2xl px-3 py-3 text-[15px] font-medium transition-all duration-200 ${isActive ? "border border-violet-400/30 bg-violet-500/10 text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.12)]" : "text-slate-200 hover:bg-white/5 hover:text-white"} ${isLogout ? "mt-3 border border-red-500/20 bg-red-500/5 text-red-200 hover:bg-red-500/10" : ""}`
                 }
                 onClick={(event) => {
                   if (isLogout) {
@@ -1562,8 +1578,8 @@ function AppShell() {
                   setMobileMenuOpen(false);
                 }}
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="leading-none">{label}</span>
               </NavLink>
             );
           })}
@@ -1571,17 +1587,17 @@ function AppShell() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gym-border bg-gym-sidebar/95 px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 backdrop-blur-md lg:hidden">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-4 gap-2">
           {menu.slice(0, 4).map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] ${isActive ? "bg-gym-accent/15 text-gym-accent" : "text-gym-text/65"}`
+                `flex flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[10px] ${isActive ? "bg-gym-accent/15 text-gym-accent" : "text-gym-text/65"}`
               }
             >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
+              <Icon className="h-5 w-5" />
+              <span className="leading-none">{label}</span>
             </NavLink>
           ))}
         </div>
@@ -1635,6 +1651,9 @@ function StatCard({
 }
 
 function DashboardHeroBanner() {
+  const { attendance } = useSharedGymData();
+  const todayStr = getLocalDateString();
+  const todayAttendance = attendance.filter((entry) => entry.date === todayStr).length;
   const totalRevenue = paymentRecords
     .filter((payment) => payment.status === "Paid")
     .reduce((sum, payment) => sum + payment.amount, 0);
@@ -1753,8 +1772,10 @@ function DashboardHeroBanner() {
             <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
               Attendance
             </p>
-            <p className="mt-2 text-xl font-semibold text-gym-text">1,284</p>
-            <p className="mt-1 text-[11px] text-emerald-300">+96 today</p>
+            <p className="mt-2 text-xl font-semibold text-gym-text">
+              {todayAttendance}
+            </p>
+            <p className="mt-1 text-[11px] text-emerald-300">Live today</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
             <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
@@ -1781,16 +1802,19 @@ function DashboardHeroBanner() {
 }
 
 function DashboardPage() {
-  const totalMembers = seedMembers.length;
-  const activeMembers = seedMembers.filter(
+  const { members, payments, attendance } = useSharedGymData();
+  const totalMembers = members.length;
+  const activeMembers = members.filter(
     (member) => member.status === "Active",
   ).length;
-  const pendingPayments = paymentRecords.filter(
+  const pendingPayments = payments.filter(
     (payment) => payment.status === "Pending" || payment.status === "Overdue",
   ).length;
-  const revenue = paymentRecords
+  const revenue = payments
     .filter((payment) => payment.status === "Paid")
     .reduce((sum, payment) => sum + payment.amount, 0);
+  const today = getLocalDateString();
+  const todayAttendance = attendance.filter((entry) => entry.date === today).length;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -1978,7 +2002,7 @@ function DashboardPage() {
           </div>
           <div className="h-52 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueSeries}>
+              <BarChart data={getWeeklyAttendanceData(attendance)}>
                 <XAxis
                   dataKey="name"
                   stroke="#A0A7A0"
@@ -2164,7 +2188,7 @@ function DashboardPage() {
 }
 
 function MembersPage() {
-  const [members, setMembers] = useState<MemberRecord[]>(seedMembers);
+  const { members, setMembers } = useSharedGymData();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
 
@@ -2331,7 +2355,8 @@ function MemberFormPage() {
       status: form.status,
       notes: "Created from add member form",
     };
-    seedMembers.unshift(newMember);
+    sharedMembers = [newMember, ...sharedMembers];
+    emitGymDataUpdate();
     navigate("/admin/members");
   };
 
@@ -2432,98 +2457,361 @@ function MemberFormPage() {
 }
 
 function MembershipsPage() {
-  const [plans, setPlans] = useState<PlanRecord[]>(membershipPlans);
+  const { user } = useAuth();
 
-  const togglePlan = (planId: string) => {
-    setPlans((current) =>
-      current.map((plan) =>
-        plan.id === planId
-          ? {
-              ...plan,
-              status: plan.status === "Active" ? "Archived" : "Active",
-            }
-          : plan,
-      ),
-    );
+  // Read persisted plan from localStorage (set after payment)
+  const [activePlan, setActivePlan] = useState<{
+    planId: string;
+    planName: string;
+    expiryDate: string;
+    amount: number;
+  } | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem(`petergym-membership-${user?.id ?? "guest"}`);
+    return saved ? (JSON.parse(saved) as typeof activePlan) : null;
+  });
+
+  const [selectedPlanId, setSelectedPlanId] = useState<"monthly" | "annual">(
+    "annual",
+  );
+  const [paymentState, setPaymentState] = useState<
+    "idle" | "processing" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const plans = membershipPlans as PlanRecord[];
+  const monthlyPlan = plans.find((p) => p.id === "monthly")!;
+  const annualPlan = plans.find((p) => p.id === "annual")!;
+  const selectedPlan = selectedPlanId === "annual" ? annualPlan : monthlyPlan;
+  const selectedPrice =
+    selectedPlanId === "annual"
+      ? annualPlan.pricing!.annual
+      : monthlyPlan.pricing!.monthly;
+
+  const handlePurchase = async () => {
+    if (!user) {
+      setErrorMessage("You must be logged in to purchase a membership.");
+      return;
+    }
+    setPaymentState("processing");
+    setErrorMessage("");
+
+    try {
+      const durationDays = selectedPlanId === "annual" ? 365 : 30;
+      const expiryDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const startDate = new Date().toISOString().slice(0, 10);
+
+      // Save to Firebase Firestore if enabled
+      if (firebaseEnabled && db) {
+        await setDoc(
+          doc(db, "users", user.id),
+          {
+            membershipPlan: selectedPlan.name,
+            membershipStart: startDate,
+            membershipEnd: expiryDate,
+            membershipAmount: selectedPrice,
+            membershipUpdatedAt: new Date().toISOString(),
+            status: "Active",
+          },
+          { merge: true },
+        );
+      }
+
+      // Persist locally so the UI reflects the new plan immediately
+      const persistedPlan = {
+        planId: selectedPlanId,
+        planName: selectedPlan.name,
+        expiryDate,
+        amount: selectedPrice,
+      };
+      localStorage.setItem(
+        `petergym-membership-${user.id}`,
+        JSON.stringify(persistedPlan),
+      );
+
+      // Update shared member profile
+      const memberIndex = sharedMembers.findIndex(
+        (m) =>
+          m.email.toLowerCase() === user.email.toLowerCase() ||
+          m.name === user.name,
+      );
+      const updatedMemberBase =
+        memberIndex >= 0 ? sharedMembers[memberIndex] : sharedMembers[0];
+      const updatedMember: MemberRecord = {
+        ...updatedMemberBase,
+        plan: selectedPlan.name,
+        membershipStart: startDate,
+        membershipEnd: expiryDate,
+        status: "Active",
+        notes: `${selectedPlan.name} membership activated via secure payment.`,
+      };
+      if (memberIndex >= 0) {
+        sharedMembers[memberIndex] = updatedMember;
+      } else {
+        sharedMembers = [updatedMember, ...sharedMembers.slice(1)];
+      }
+
+      // Record payment
+      const newPayment: PaymentRecord = {
+        id: `pay${Date.now()}`,
+        member: user.name,
+        memberId: user.id,
+        amount: selectedPrice,
+        currency: "INR",
+        method: "UPI",
+        date: startDate,
+        status: "Paid",
+        reference: `PLAN-${Date.now()}`,
+        notes: `${selectedPlan.name} plan — expires ${expiryDate}`,
+      };
+      sharedPayments = [newPayment, ...sharedPayments];
+      emitGymDataUpdate();
+
+      setActivePlan(persistedPlan);
+      setPaymentState("success");
+    } catch (err) {
+      console.error("Membership purchase error:", err);
+      setErrorMessage("Payment could not be processed. Please try again.");
+      setPaymentState("error");
+    }
   };
 
-  const [billingCycle, setBillingCycle] = useState<
-    "Monthly" | "Quarterly" | "Annual"
-  >("Monthly");
-  const cycleKey = billingCycle.toLowerCase() as
-    | "monthly"
-    | "quarterly"
-    | "annual";
+  const isActive = (planId: string) => activePlan?.planId === planId;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="w-full max-w-full min-w-0 space-y-6">
+      {/* Page header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-gym-muted">
+          <p className="text-xs uppercase tracking-[0.24em] text-gym-muted sm:text-sm">
             Memberships
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Plans and renewals</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-gym-text sm:text-3xl">
+            Plans and renewals
+          </h1>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-gym-border bg-gym-panel p-1">
-          {(["Monthly", "Quarterly", "Annual"] as const).map((cycle) => (
+        {activePlan && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            Active: {activePlan.planName} · Expires {activePlan.expiryDate}
+          </span>
+        )}
+      </div>
+
+      {/* Success / Error banners */}
+      {paymentState === "success" && (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-200">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
+          <div>
+            <p className="font-semibold">Payment successful!</p>
+            <p className="text-xs text-emerald-300/80">
+              Your <span className="font-medium">{activePlan?.planName}</span>{" "}
+              membership is now active until{" "}
+              <span className="font-medium">{activePlan?.expiryDate}</span>.
+              Your dashboard has been updated.
+            </p>
+          </div>
+        </div>
+      )}
+      {paymentState === "error" && (
+        <div className="flex items-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">
+          <AlertCircle className="h-5 w-5 shrink-0 text-rose-400" />
+          <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {/* Plan cards */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Monthly Plan */}
+        <div
+          className={`panel relative flex flex-col gap-4 p-5 transition-all ${
+            selectedPlanId === "monthly"
+              ? "ring-2 ring-gym-accent/50"
+              : "hover:ring-1 hover:ring-gym-border"
+          }`}
+        >
+          {isActive("monthly") && (
+            <span className="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+              Current Plan
+            </span>
+          )}
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+              Monthly
+            </p>
+            <div className="mt-2 flex items-end gap-1">
+              <p className="text-4xl font-bold text-gym-text">₹600</p>
+              <p className="mb-1 text-sm text-gym-muted">/month</p>
+            </div>
+            <p className="mt-1 text-sm text-gym-muted">
+              Full gym access. No long-term commitment.
+            </p>
+          </div>
+
+          <ul className="space-y-2">
+            {monthlyPlan.benefits.map((benefit) => (
+              <li
+                key={benefit}
+                className="flex items-center gap-2.5 text-sm text-gym-text/80"
+              >
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-gym-accent" />
+                {benefit}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-auto flex gap-2">
             <button
-              key={cycle}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition ${billingCycle === cycle ? "bg-gym-accent text-[#0d0e14]" : "text-gym-muted hover:text-gym-text"}`}
-              onClick={() => setBillingCycle(cycle)}
+              type="button"
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition ${
+                selectedPlanId === "monthly"
+                  ? "border-gym-accent/50 bg-gym-accent/10 text-gym-accent"
+                  : "border-gym-border bg-gym-panel text-gym-muted hover:border-gym-accent/40 hover:text-gym-text"
+              }`}
+              onClick={() => {
+                setSelectedPlanId("monthly");
+                setPaymentState("idle");
+              }}
             >
-              {cycle}
+              {selectedPlanId === "monthly" ? "✓ Selected" : "Select Monthly"}
             </button>
-          ))}
+          </div>
+        </div>
+
+        {/* Annual Plan — Best Value */}
+        <div
+          className={`panel relative flex flex-col gap-4 p-5 transition-all ${
+            selectedPlanId === "annual"
+              ? "ring-2 ring-violet-400/60"
+              : "hover:ring-1 hover:ring-gym-border"
+          }`}
+        >
+          {/* Best Value badge */}
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-3.5 py-1 text-[11px] font-semibold text-white shadow-lg">
+            ⭐ Best Value
+          </span>
+          {isActive("annual") && (
+            <span className="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+              Current Plan
+            </span>
+          )}
+
+          <div className="mt-2">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+              Annual
+            </p>
+            <div className="mt-2 flex items-end gap-1">
+              <p className="text-4xl font-bold text-gym-text">₹6,000</p>
+              <p className="mb-1 text-sm text-gym-muted">/year</p>
+            </div>
+            <p className="mt-1 text-sm text-gym-muted">
+              Full access, all year. Best price guaranteed.
+            </p>
+            <span className="mt-2 inline-block rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
+              💰 Save ₹1,200 per year vs monthly
+            </span>
+          </div>
+
+          <ul className="space-y-2">
+            {annualPlan.benefits.map((benefit) => (
+              <li
+                key={benefit}
+                className={`flex items-center gap-2.5 text-sm ${
+                  benefit.startsWith("Save")
+                    ? "font-medium text-amber-300"
+                    : "text-gym-text/80"
+                }`}
+              >
+                <CheckCircle2
+                  className={`h-4 w-4 shrink-0 ${
+                    benefit.startsWith("Save")
+                      ? "text-amber-400"
+                      : "text-violet-400"
+                  }`}
+                />
+                {benefit}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-auto flex gap-2">
+            <button
+              type="button"
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition ${
+                selectedPlanId === "annual"
+                  ? "border-violet-400/50 bg-violet-500/10 text-violet-200"
+                  : "border-gym-border bg-gym-panel text-gym-muted hover:border-violet-400/40 hover:text-gym-text"
+              }`}
+              onClick={() => {
+                setSelectedPlanId("annual");
+                setPaymentState("idle");
+              }}
+            >
+              {selectedPlanId === "annual" ? "✓ Selected" : "Select Annual"}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {plans.map((plan) => {
-          const price = plan.pricing?.[cycleKey] ?? plan.price;
-          return (
-            <div key={plan.id} className="panel p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xl font-semibold text-gym-text">
-                    {plan.name}
-                  </p>
-                  <p className="mt-1 text-sm text-gym-muted">
-                    {plan.description}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] ${plan.status === "Active" ? "bg-emerald-500/10 text-emerald-300" : "bg-amber-500/10 text-amber-300"}`}
-                >
-                  {plan.status}
-                </span>
-              </div>
-              <div className="mt-4 flex items-end justify-between">
-                <div>
-                  <p className="text-3xl font-semibold">
-                    {formatCurrency(price)}
-                  </p>
-                  <p className="text-xs text-gym-muted">
-                    {billingCycle} billing
-                  </p>
-                </div>
-                <button
-                  className="btn-secondary px-3 py-2 text-xs"
-                  onClick={() => togglePlan(plan.id)}
-                >
-                  {plan.status === "Active" ? "Archive" : "Activate"}
-                </button>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-gym-muted">
-                {plan.benefits.map((benefit) => (
-                  <li key={benefit} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-gym-accent" />{" "}
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+      {/* Checkout panel */}
+      <div className="panel p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gym-muted">
+              Selected plan
+            </p>
+            <h2 className="mt-1.5 text-xl font-semibold text-gym-text">
+              {selectedPlan.name} Plan
+            </h2>
+            <p className="mt-0.5 text-sm text-gym-muted">
+              {selectedPlanId === "annual"
+                ? "12 months · Full access · Best value"
+                : "1 month · Full access · Cancel anytime"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 px-5 py-3 text-right">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80">
+              Total
+            </p>
+            <p className="mt-1 text-2xl font-bold text-gym-text">
+              {formatCurrency(selectedPrice)}
+            </p>
+            <p className="text-xs text-gym-muted">
+              {selectedPlanId === "annual" ? "per year" : "per month"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="btn-primary gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handlePurchase}
+            disabled={paymentState === "processing" || paymentState === "success"}
+          >
+            {paymentState === "processing" ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Processing…
+              </>
+            ) : paymentState === "success" ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" /> Membership Active
+              </>
+            ) : (
+              `Pay ${formatCurrency(selectedPrice)} now`
+            )}
+          </button>
+          <span className="text-xs text-gym-muted">
+            Saves plan, expiry date, and payment record — updates your dashboard
+            instantly.
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -2561,7 +2849,7 @@ function PaymentQrCode({ size = 92 }: { size?: number }) {
 }
 
 function PaymentsPage() {
-  const [payments, setPayments] = useState<PaymentRecord[]>(paymentRecords);
+  const { payments, setPayments } = useSharedGymData();
   const [form, setForm] = useState({
     member: "Sarah L.",
     amount: "4999",
@@ -2610,21 +2898,24 @@ function PaymentsPage() {
       setPaymentState("success");
       setShowToast(true);
       setForm((current) => ({ ...current, status: "Paid" }));
-      setPayments((current) => [
-        {
-          id: `pay${Date.now()}`,
-          member: form.member,
-          memberId: "GF-9999",
-          amount: Number(form.amount),
-          currency: "INR",
-          method: selectedPaymentMethod as PaymentRecord["method"],
-          date: new Date().toISOString().slice(0, 10),
-          status: "Paid",
-          reference: `AUTO-${Date.now()}`,
-          notes: "UPI payment confirmation",
-        },
-        ...current,
-      ]);
+      const successEntry = {
+        id: `pay${Date.now()}`,
+        member: form.member,
+        memberId: "GF-9999",
+        amount: Number(form.amount),
+        currency: "INR",
+        method: selectedPaymentMethod as PaymentRecord["method"],
+        date: new Date().toISOString().slice(0, 10),
+        status: "Paid" as PaymentStatus,
+        reference: `AUTO-${Date.now()}`,
+        notes: "UPI payment confirmation",
+      };
+      setPayments((current) => {
+        const updated = [successEntry, ...current];
+        sharedPayments = updated;
+        emitGymDataUpdate();
+        return updated;
+      });
 
       window.setTimeout(() => {
         setShowToast(false);
@@ -2652,7 +2943,12 @@ function PaymentsPage() {
       reference: `AUTO-${Date.now()}`,
       notes: "Manual entry",
     };
-    setPayments((current) => [newPayment, ...current]);
+    setPayments((current) => {
+      const updated = [newPayment, ...current];
+      sharedPayments = updated;
+      emitGymDataUpdate();
+      return updated;
+    });
   };
 
   return (
@@ -2913,73 +3209,714 @@ function PaymentsPage() {
 }
 
 function AttendancePage() {
-  const [attendance, setAttendance] = useState(attendanceRecords);
+  const { user } = useAuth();
+  const [records, setRecords] = useState<AttendanceRecord[]>(() =>
+    getLocalAttendanceRecords(),
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [liveTimer, setLiveTimer] = useState("00:00");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "All" | "Checked In" | "Checked Out"
+  >("All");
+  const [dateFilter, setDateFilter] = useState<"All" | "Today">("All");
 
-  const checkInMember = () => {
-    const member = seedMembers[0];
-    setAttendance((current) => [
-      {
-        id: `att-${Date.now()}`,
-        memberId: member.memberId,
-        memberName: member.name,
-        date: new Date().toISOString().slice(0, 10),
-        checkIn: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
-        status: "Checked In",
+  const todayStr = getLocalDateString();
+  const isMember = user?.role === "member";
+  const effectiveUserId = user?.id || "";
+
+  // Subscribe to real-time attendance updates
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    const unsubscribe = subscribeAttendance(
+      user,
+      (updatedRecords) => {
+        setRecords(updatedRecords);
+        setIsLoading(false);
       },
-      ...current,
-    ]);
+      (err) => {
+        console.warn("Real-time listener warning:", err);
+        setIsLoading(false);
+      },
+    );
+    return () => unsubscribe();
+  }, [user]);
+
+  // Identify active session for member
+  const activeSession = useMemo(() => {
+    if (!effectiveUserId) return null;
+    return findActiveSession(records, effectiveUserId);
+  }, [records, effectiveUserId]);
+
+  // Identify latest session today for member
+  const todayLatestSession = useMemo(() => {
+    if (!effectiveUserId) return null;
+    return findTodayLatestSession(records, effectiveUserId);
+  }, [records, effectiveUserId]);
+
+  // Live session timer ticking every second
+  useEffect(() => {
+    if (!activeSession) {
+      setLiveTimer("00:00");
+      return;
+    }
+
+    const checkInDate = activeSession.checkInTimestamp
+      ? parseTimestampToDate(
+          activeSession.checkInTimestamp,
+          activeSession.date,
+          activeSession.checkIn,
+        )
+      : parseTimestampToDate(null, activeSession.date, activeSession.checkIn);
+
+    const updateTimer = () => {
+      setLiveTimer(formatLiveTimer(checkInDate));
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeSession]);
+
+  const handleCheckIn = async () => {
+    if (!user) return;
+    if (activeSession) {
+      setActionError(
+        "You already have an active check-in session in progress. Please check out first.",
+      );
+      return;
+    }
+    setActionError(null);
+    setActionSuccess(null);
+    setIsCheckingIn(true);
+    try {
+      const res = await checkInMember(user);
+      if (!res.success) {
+        setActionError(res.error || "Failed to check in.");
+      } else {
+        setActionSuccess(
+          `Successfully checked in at ${
+            res.record?.checkIn || formatLocalTimeString()
+          }!`,
+        );
+      }
+    } catch (err: any) {
+      setActionError(err?.message || "An error occurred while checking in.");
+    } finally {
+      setIsCheckingIn(false);
+    }
   };
 
+  const handleCheckOut = async () => {
+    if (!user) return;
+    if (!activeSession) {
+      setActionError("No active check-in session found to check out.");
+      return;
+    }
+    setActionError(null);
+    setActionSuccess(null);
+    setIsCheckingOut(true);
+    try {
+      const res = await checkOutMember(user);
+      if (!res.success) {
+        setActionError(res.error || "Failed to check out.");
+      } else {
+        setActionSuccess(
+          `Successfully checked out! Total workout duration: ${
+            res.record?.duration || "recorded"
+          }.`,
+        );
+      }
+    } catch (err: any) {
+      setActionError(err?.message || "An error occurred while checking out.");
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  // Filtered records
+  const filteredRecords = useMemo(() => {
+    let result = records;
+
+    if (isMember) {
+      return result.filter(
+        (r) =>
+          r.userId === effectiveUserId ||
+          r.memberId === effectiveUserId ||
+          r.memberEmail === user?.email,
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.memberName.toLowerCase().includes(q) ||
+          (r.memberEmail && r.memberEmail.toLowerCase().includes(q)) ||
+          r.memberId.toLowerCase().includes(q),
+      );
+    }
+
+    if (statusFilter !== "All") {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+
+    if (dateFilter === "Today") {
+      result = result.filter((r) => r.date === todayStr);
+    }
+
+    return result;
+  }, [
+    records,
+    isMember,
+    effectiveUserId,
+    user?.email,
+    searchQuery,
+    statusFilter,
+    dateFilter,
+    todayStr,
+  ]);
+
+  // Admin / Trainer stats
+  const todayTotalCheckIns = useMemo(() => {
+    return records.filter((r) => r.date === todayStr).length;
+  }, [records, todayStr]);
+
+  const currentlyActiveCount = useMemo(() => {
+    return records.filter((r) => r.status === "Checked In" && !r.checkOut)
+      .length;
+  }, [records]);
+
+  const completedTodayCount = useMemo(() => {
+    return records.filter(
+      (r) => r.date === todayStr && r.status === "Checked Out",
+    ).length;
+  }, [records, todayStr]);
+
+  if (!user) {
+    return (
+      <div className="panel p-6 text-center">
+        <p className="text-gym-muted">Please sign in to access Attendance.</p>
+      </div>
+    );
+  }
+
+  // --- Member View ---
+  if (isMember) {
+    return (
+      <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
+        {/* Header with Check In & Check Out buttons */}
+        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.24em] text-gym-muted sm:text-sm">
+              Attendance
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold text-gym-text sm:text-3xl">
+              Check-ins and visits
+            </h1>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
+            <button
+              className="btn-primary flex w-full items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold sm:w-auto sm:px-4 sm:text-sm disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleCheckIn}
+              disabled={isCheckingIn || Boolean(activeSession)}
+              title={
+                activeSession
+                  ? "Active session already in progress. Check out first."
+                  : "Check in for workout session"
+              }
+            >
+              <LogIn className="h-4 w-4 shrink-0" />
+              <span>{isCheckingIn ? "Checking In..." : "Check In"}</span>
+            </button>
+            <button
+              className="btn-secondary flex w-full items-center justify-center gap-2 border-rose-500/40 px-3 py-2.5 text-xs font-semibold text-rose-300 hover:border-rose-400 hover:bg-rose-500/10 sm:w-auto sm:px-4 sm:text-sm disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleCheckOut}
+              disabled={isCheckingOut || !activeSession}
+              title={
+                !activeSession
+                  ? "No active session to check out"
+                  : "End your current workout session"
+              }
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span>{isCheckingOut ? "Checking Out..." : "Check Out"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Action feedback banners */}
+        {actionSuccess && (
+          <div className="flex w-full min-w-0 items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-3 text-xs text-emerald-300 sm:px-4 sm:text-sm">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span className="break-words">{actionSuccess}</span>
+            </div>
+            <button
+              onClick={() => setActionSuccess(null)}
+              className="ml-2 shrink-0 text-emerald-400 hover:text-emerald-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        {actionError && (
+          <div className="flex w-full min-w-0 items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-xs text-rose-300 sm:px-4 sm:text-sm">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+              <span className="break-words">{actionError}</span>
+            </div>
+            <button
+              onClick={() => setActionError(null)}
+              className="ml-2 shrink-0 text-rose-400 hover:text-rose-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Today's Attendance Overview Cards */}
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: Member Status & Identity */}
+          <div className="panel min-w-0 max-w-full rounded-2xl p-3.5 sm:p-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+              Today's Status
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                {activeSession ? (
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+                  </span>
+                ) : (
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-500" />
+                )}
+                <p className="truncate text-base font-semibold text-gym-text sm:text-lg">
+                  {activeSession
+                    ? "Checked In"
+                    : todayLatestSession?.status === "Checked Out"
+                    ? "Checked Out"
+                    : "Not Checked In"}
+                </p>
+              </div>
+              <span
+                className={`chip shrink-0 text-[10px] ${
+                  activeSession
+                    ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
+                    : ""
+                }`}
+              >
+                {activeSession
+                  ? "Active"
+                  : todayLatestSession
+                  ? "Completed"
+                  : "Inactive"}
+              </span>
+            </div>
+            <div className="mt-3 border-t border-gym-border/60 pt-2 text-xs">
+              <p className="truncate font-medium text-gym-text">{user.name}</p>
+              <p className="truncate text-[11px] text-gym-muted">{user.email}</p>
+              <p className="truncate text-[10px] text-gym-muted">
+                Gym ID: {user.gymId || "gym_1"}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Today's Check-in Time */}
+          <div className="panel min-w-0 max-w-full rounded-2xl p-3.5 sm:p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+                Check-in Time
+              </p>
+              <Clock className="h-4 w-4 text-gym-accent shrink-0" />
+            </div>
+            <p className="mt-2 font-mono text-xl font-bold text-gym-text">
+              {activeSession?.checkIn || todayLatestSession?.checkIn || "—"}
+            </p>
+            <p className="mt-2 text-xs text-gym-muted truncate">
+              {todayLatestSession
+                ? `Today • ${todayLatestSession.date}`
+                : "No check-in recorded today"}
+            </p>
+          </div>
+
+          {/* Card 3: Today's Check-out Time */}
+          <div className="panel min-w-0 max-w-full rounded-2xl p-3.5 sm:p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+                Check-out Time
+              </p>
+              <Clock className="h-4 w-4 text-violet-400 shrink-0" />
+            </div>
+            <p className="mt-2 font-mono text-xl font-bold text-gym-text">
+              {activeSession
+                ? "In Progress"
+                : todayLatestSession?.checkOut || "—"}
+            </p>
+            <p className="mt-2 text-xs text-gym-muted truncate">
+              {activeSession
+                ? "Session currently ongoing"
+                : todayLatestSession?.checkOut
+                ? "Completed today"
+                : "Not checked out"}
+            </p>
+          </div>
+
+          {/* Card 4: Session Duration */}
+          <div className="panel min-w-0 max-w-full rounded-2xl p-3.5 sm:p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+                Session Duration
+              </p>
+              <Timer
+                className={`h-4 w-4 shrink-0 ${
+                  activeSession
+                    ? "animate-spin text-emerald-400"
+                    : "text-amber-400"
+                }`}
+              />
+            </div>
+            <p className="mt-2 font-mono text-xl font-bold text-gym-text">
+              {activeSession
+                ? liveTimer
+                : todayLatestSession?.duration || "0m"}
+            </p>
+            <p className="mt-2 text-xs text-gym-muted truncate">
+              {activeSession
+                ? "Live duration ticking"
+                : todayLatestSession?.duration
+                ? "Total workout time today"
+                : "No active session"}
+            </p>
+          </div>
+        </div>
+
+        {/* Member Attendance History Table */}
+        <div className="panel min-w-0 max-w-full overflow-hidden rounded-2xl">
+          <div className="flex flex-col gap-1 border-b border-gym-border p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-gym-text sm:text-base">
+                Your Attendance History
+              </h2>
+              <p className="text-xs text-gym-muted">
+                Track past sessions, check-in timestamps, and durations
+              </p>
+            </div>
+            <span className="shrink-0 self-start text-xs text-gym-muted sm:self-auto">
+              {filteredRecords.length} sessions recorded
+            </span>
+          </div>
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-full divide-y divide-gym-border text-xs sm:text-sm">
+              <thead className="bg-gym-panel">
+                <tr>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                    Date
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                    Check-in
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                    Check-out
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                    Duration
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gym-border">
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-sm text-gym-muted"
+                    >
+                      Loading attendance records...
+                    </td>
+                  </tr>
+                ) : filteredRecords.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-sm text-gym-muted"
+                    >
+                      No attendance records found yet. Click Check In above to
+                      start your workout session!
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRecords.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-white/[0.02]">
+                      <td className="whitespace-nowrap px-3 py-2.5 font-medium text-gym-text sm:px-4 sm:py-3">
+                        {entry.date}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 font-mono text-gym-text/80 sm:px-4 sm:py-3">
+                        {entry.checkIn || "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 font-mono text-gym-text/80 sm:px-4 sm:py-3">
+                        {entry.checkOut ||
+                          (entry.status === "Checked In"
+                            ? "In Progress"
+                            : "—")}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 font-medium text-gym-accent sm:px-4 sm:py-3">
+                        {entry.duration ||
+                          (entry.status === "Checked In" ? liveTimer : "—")}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 sm:px-4 sm:py-3">
+                        <span
+                          className={`chip ${
+                            entry.status === "Checked In"
+                              ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
+                              : ""
+                          }`}
+                        >
+                          {entry.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Admin and Trainer Management View ---
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-gym-muted">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
+      {/* Header with Role & Gym context */}
+      <div className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-[0.24em] text-gym-muted sm:text-sm">
             Attendance
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Check-ins and visits</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-gym-text sm:text-3xl">
+            Check-ins and visits
+          </h1>
         </div>
-        <button className="btn-primary" onClick={checkInMember}>
-          Check member in
-        </button>
+        <div className="self-start sm:self-auto">
+          <span className="inline-block max-w-full truncate rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
+            {user.role === "super_admin"
+              ? "Admin Overview • All Authorized Records"
+              : `Trainer Portal • Gym: ${user.gymId || "gym_1"}`}
+          </span>
+        </div>
       </div>
 
-      <div className="panel overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gym-border text-sm">
+      {/* Real-time Gym Stat Cards */}
+      <div className="grid w-full min-w-0 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <div className="panel min-w-0 max-w-full rounded-2xl p-3 sm:p-4">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+            Today's Check-ins
+          </p>
+          <p className="mt-1.5 text-xl font-bold text-gym-text sm:text-2xl">
+            {todayTotalCheckIns}
+          </p>
+          <p className="mt-1 text-[11px] text-emerald-300 sm:text-xs">
+            Sessions today
+          </p>
+        </div>
+
+        <div className="panel min-w-0 max-w-full rounded-2xl p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+              Active Now
+            </p>
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </span>
+          </div>
+          <p className="mt-1.5 text-xl font-bold text-emerald-300 sm:text-2xl">
+            {currentlyActiveCount}
+          </p>
+          <p className="mt-1 text-[11px] text-gym-muted sm:text-xs">
+            In gym now
+          </p>
+        </div>
+
+        <div className="panel min-w-0 max-w-full rounded-2xl p-3 sm:p-4">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+            Completed Today
+          </p>
+          <p className="mt-1.5 text-xl font-bold text-gym-text sm:text-2xl">
+            {completedTodayCount}
+          </p>
+          <p className="mt-1 text-[11px] text-gym-muted sm:text-xs">
+            Sessions ended
+          </p>
+        </div>
+
+        <div className="panel min-w-0 max-w-full rounded-2xl p-3 sm:p-4">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+            Total Records
+          </p>
+          <p className="mt-1.5 text-xl font-bold text-gym-text sm:text-2xl">
+            {records.length}
+          </p>
+          <p className="mt-1 text-[11px] text-gym-muted sm:text-xs">
+            All logs
+          </p>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="panel min-w-0 max-w-full rounded-2xl p-3 sm:p-4">
+        <div className="flex flex-col gap-2.5 sm:gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gym-muted" />
+            <input
+              type="text"
+              placeholder="Search member name, email, or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input w-full pl-9 text-xs sm:text-sm"
+            />
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(
+                  e.target.value as "All" | "Checked In" | "Checked Out",
+                )
+              }
+              className="input w-full bg-gym-panel px-2.5 py-2 text-xs sm:w-auto sm:px-3 sm:text-sm"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Checked In">Active (Checked In)</option>
+              <option value="Checked Out">Checked Out</option>
+            </select>
+            <select
+              value={dateFilter}
+              onChange={(e) =>
+                setDateFilter(e.target.value as "All" | "Today")
+              }
+              className="input w-full bg-gym-panel px-2.5 py-2 text-xs sm:w-auto sm:px-3 sm:text-sm"
+            >
+              <option value="All">All Dates</option>
+              <option value="Today">Today Only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance Management Table */}
+      <div className="panel min-w-0 max-w-full overflow-hidden rounded-2xl">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full divide-y divide-gym-border text-xs sm:text-sm">
             <thead className="bg-gym-panel">
               <tr>
-                <th className="px-4 py-3 text-left text-gym-muted">Member</th>
-                <th className="px-4 py-3 text-left text-gym-muted">Date</th>
-                <th className="px-4 py-3 text-left text-gym-muted">Check-in</th>
-                <th className="px-4 py-3 text-left text-gym-muted">
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                  Member
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                  Date
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                  Check-in
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
                   Check-out
                 </th>
-                <th className="px-4 py-3 text-left text-gym-muted">Status</th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                  Duration
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gym-muted sm:px-4 sm:py-3">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gym-border">
-              {attendance.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="px-4 py-3 font-medium text-gym-text">
-                    {entry.memberName}
-                  </td>
-                  <td className="px-4 py-3 text-gym-text/80">{entry.date}</td>
-                  <td className="px-4 py-3 text-gym-text/80">
-                    {entry.checkIn}
-                  </td>
-                  <td className="px-4 py-3 text-gym-text/80">
-                    {entry.checkOut || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="chip">{entry.status}</span>
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-sm text-gym-muted"
+                  >
+                    Loading attendance records...
                   </td>
                 </tr>
-              ))}
+              ) : filteredRecords.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-sm text-gym-muted"
+                  >
+                    No attendance records match your search or filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredRecords.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-white/[0.02]">
+                    <td className="whitespace-nowrap px-3 py-2.5 sm:px-4 sm:py-3">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-xs font-bold text-violet-300">
+                          {entry.memberName
+                            ? entry.memberName
+                                .split(" ")
+                                .map((p) => p[0])
+                                .slice(0, 2)
+                                .join("")
+                                .toUpperCase()
+                            : "M"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-gym-text">
+                            {entry.memberName}
+                          </p>
+                          {entry.memberEmail && (
+                            <p className="truncate text-xs text-gym-muted">
+                              {entry.memberEmail}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-gym-text/80 sm:px-4 sm:py-3">{entry.date}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-gym-text/80 sm:px-4 sm:py-3">
+                      {entry.checkIn || "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-gym-text/80 sm:px-4 sm:py-3">
+                      {entry.checkOut ||
+                        (entry.status === "Checked In"
+                          ? "In Progress"
+                          : "—")}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-medium text-gym-accent sm:px-4 sm:py-3">
+                      {entry.duration ||
+                        (entry.status === "Checked In" ? "Active" : "—")}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 sm:px-4 sm:py-3">
+                      <span
+                        className={`chip ${
+                          entry.status === "Checked In"
+                            ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
+                            : ""
+                        }`}
+                      >
+                        {entry.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -3949,7 +4886,73 @@ function AdminUsersPage() {
 }
 
 function MemberDashboardPage() {
-  const profile = seedMembers[0];
+  const { user } = useAuth();
+  const { members, payments, attendance } = useSharedGymData();
+
+  // Read persisted plan from localStorage (written by MembershipsPage after payment)
+  const persistedMembership = (() => {
+    if (typeof window === "undefined" || !user) return null;
+    const saved = localStorage.getItem(`petergym-membership-${user.id}`);
+    return saved
+      ? (JSON.parse(saved) as {
+          planId: string;
+          planName: string;
+          expiryDate: string;
+          amount: number;
+        })
+      : null;
+  })();
+
+  const profile =
+    (user &&
+      members.find(
+        (m) =>
+          m.email.toLowerCase() === user.email.toLowerCase() ||
+          m.name === user.name,
+      )) || {
+      id: user?.id || "m-me",
+      memberId: user?.id || "GF-USER",
+      name: user?.name || "Gym Member",
+      email: user?.email || "",
+      phone: "+91 9988776655",
+      avatar: user?.avatar || "GM",
+      dob: "1995-01-01",
+      emergencyContact: "Emergency Contact",
+      address: "Lalru, Punjab",
+      joinDate: "2025-01-01",
+      plan: persistedMembership?.planName ?? "Monthly",
+      membershipStart: "2025-01-01",
+      membershipEnd: persistedMembership?.expiryDate ?? "2026-12-31",
+      trainer: "Daniel Lee",
+      status: "Active" as const,
+      notes: "Dedicated gym member",
+    };
+
+  // Use persisted plan data if available, otherwise fall back to profile
+  const displayPlan = persistedMembership?.planName ?? profile.plan;
+  const displayExpiry = persistedMembership?.expiryDate ?? profile.membershipEnd;
+  const displayAmount = persistedMembership?.amount;
+
+  const currentPayment = payments.find(
+    (payment) =>
+      payment.member === profile.name ||
+      (user && payment.memberId === user.id),
+  ) ?? {
+    amount: displayAmount ?? 600,
+    status: "Paid",
+  };
+  const memberAttendance = attendance.filter(
+    (entry) =>
+      (user &&
+        (entry.userId === user.id || entry.memberId === user.id)) ||
+      entry.memberName === profile.name,
+  );
+  const today = getLocalDateString();
+  const activeSession = memberAttendance.find(
+    (e) => e.status === "Checked In" && !e.checkOut,
+  );
+  const todaySession = memberAttendance.find((e) => e.date === today);
+
   return (
     <div className="space-y-6">
       <div className="panel p-5">
@@ -3965,9 +4968,9 @@ function MemberDashboardPage() {
               {profile.avatar}
             </div>
             <div>
-              <p className="font-medium text-gym-text">{profile.plan}</p>
+              <p className="font-medium text-gym-text">{displayPlan} Plan</p>
               <p className="text-sm text-gym-muted">
-                Expires on {profile.membershipEnd}
+                Expires on {displayExpiry}
               </p>
             </div>
           </div>
@@ -3976,11 +4979,22 @@ function MemberDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Current plan"
-          value={profile.plan}
+          value={displayPlan}
           change="Active"
           accent="lime"
         />
-        <StatCard label="Attendance" value="18" change="+4" accent="cyan" />
+        <StatCard
+          label="Attendance"
+          value={String(memberAttendance.length)}
+          change={
+            activeSession
+              ? "Active Now"
+              : todaySession
+              ? "Attended"
+              : "+1 recent"
+          }
+          accent="cyan"
+        />
         <StatCard
           label="Workout streak"
           value="9 days"
@@ -3989,8 +5003,8 @@ function MemberDashboardPage() {
         />
         <StatCard
           label="Payments"
-          value={formatCurrency(4999)}
-          change="Paid"
+          value={formatCurrency(currentPayment.amount)}
+          change={currentPayment.status}
           accent="purple"
         />
       </div>
@@ -3998,8 +5012,13 @@ function MemberDashboardPage() {
   );
 }
 
+
 function TrainerDashboardPage() {
-  const members = seedMembers.slice(0, 3);
+  const { user } = useAuth();
+  const { attendance, members } = useSharedGymData();
+  const trainerMembers = members.slice(0, 3);
+  const today = getLocalDateString();
+  const todayAttendance = attendance.filter((entry) => entry.date === today);
   return (
     <div className="space-y-6">
       <div>
@@ -4011,11 +5030,16 @@ function TrainerDashboardPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           label="Assigned members"
-          value="28"
+          value={String(trainerMembers.length)}
           change="+7%"
           accent="lime"
         />
-        <StatCard label="Today sessions" value="11" change="+3" accent="cyan" />
+        <StatCard
+          label="Today sessions"
+          value={String(todayAttendance.length)}
+          change={todayAttendance.length > 0 ? "Live" : "No sessions"}
+          accent="cyan"
+        />
         <StatCard
           label="Completion rate"
           value="89%"
@@ -4026,7 +5050,7 @@ function TrainerDashboardPage() {
       <div className="panel p-5">
         <h2 className="mb-4 text-lg font-semibold">Member performance</h2>
         <div className="space-y-3">
-          {members.map((member) => (
+          {trainerMembers.map((member) => (
             <div
               key={member.id}
               className="flex items-center justify-between rounded-xl border border-gym-border bg-gym-panel px-3 py-2.5"
@@ -4163,17 +5187,11 @@ function RegisterPage() {
 function LoginPage() {
   const navigate = useNavigate();
   const { login, user } = useAuth();
-  const [email, setEmail] = useState("superadmin@gymflow.local");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const demoAccounts = [
-    { label: "Admin", email: "superadmin@gymflow.local", password: "demo1234" },
-    { label: "Trainer", email: "trainer@gymflow.local", password: "demo1234" },
-    { label: "Member", email: "member@gymflow.local", password: "demo1234" },
-  ];
 
   if (user) {
     return <Navigate to={getRoleRoute(user.role)} replace />;
@@ -4277,28 +5295,6 @@ function LoginPage() {
             {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
-
-        <div className="mt-6 rounded-2xl border border-violet-400/15 bg-violet-500/5 p-3">
-          <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-violet-200/80">
-            Demo accounts
-          </p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {demoAccounts.map((account) => (
-              <button
-                key={account.label}
-                type="button"
-                onClick={() => {
-                  setEmail(account.email);
-                  setPassword(account.password);
-                }}
-                className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-left text-[11px] text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/5"
-              >
-                <div className="font-semibold text-white">{account.label}</div>
-                <div className="mt-1 truncate text-slate-400">{account.email}</div>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <p className="mt-5 text-center text-sm text-slate-300">
           Don’t have an account?{" "}
