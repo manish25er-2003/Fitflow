@@ -1,4 +1,4 @@
-export type Role = "super_admin" | "gym_admin" | "trainer" | "member";
+export type Role = "super_admin" | "trainer" | "member";
 
 export type MemberStatus = "Active" | "Inactive" | "Suspended";
 export type PaymentStatus =

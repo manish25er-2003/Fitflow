@@ -29,15 +29,6 @@ export const demoUsers: UserProfile[] = [
   },
   {
     id: "u2",
-    name: "Priya Sharma",
-    email: "admin@gymflow.local",
-    role: "gym_admin",
-    gymId: "gym_1",
-    avatar: "PS",
-    phone: "+91 9812345678",
-  },
-  {
-    id: "u3",
     name: "Daniel Lee",
     email: "trainer@gymflow.local",
     role: "trainer",
@@ -46,7 +37,7 @@ export const demoUsers: UserProfile[] = [
     phone: "+91 9876543210",
   },
   {
-    id: "u4",
+    id: "u3",
     name: "Sarah Adams",
     email: "member@gymflow.local",
     role: "member",

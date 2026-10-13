@@ -84,6 +84,9 @@ import gymPhoto1 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM (1).jpeg
 import gymPhoto2 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM.jpeg";
 import gymPhoto3 from "./assets/WhatsApp Image 2026-10-13 at 1.51.41 PM (1).jpeg";
 import gymPhoto4 from "./assets/WhatsApp Image 2026-10-13 at 1.51.41 PM.jpeg";
+import dumbbellImage from "/public/gym/dumbbell-1.jpg";
+import machineImage from "/public/gym/machine-1.jpg";
+import strengthImage from "/public/gym/strength-1.jpg";
 import { auth, db, firebaseEnabled } from "./lib/firebase";
 import type {
   MemberRecord,
@@ -120,6 +123,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const gymGallery = [gymPhoto1, gymPhoto2, gymPhoto3, gymPhoto4];
+const equipmentGallery = [dumbbellImage, machineImage, strengthImage];
 
 const sidebarMenus: Record<
   Role,
@@ -133,28 +137,6 @@ const sidebarMenus: Record<
     { to: "/admin/attendance", label: "Attendance", icon: CalendarDays },
     { to: "/admin/workouts", label: "Workouts", icon: Dumbbell },
     { to: "/admin/classes", label: "Classes & Schedule", icon: CalendarDays },
-    { to: "/admin/trainers", label: "Trainers", icon: Users },
-    { to: "/admin/payments", label: "Payments", icon: WalletCards },
-    { to: "/admin/reports", label: "Reports", icon: TrendingUp },
-    { to: "/admin/notifications", label: "Notifications", icon: Bell },
-    { to: "/admin/my-profile", label: "My Profile", icon: Users },
-    {
-      to: "/admin/developer-profile",
-      label: "Developer Profile",
-      icon: ShieldCheck,
-    },
-    { to: "/admin/settings", label: "Settings", icon: Settings },
-    { to: "/login", label: "Logout", icon: LogOut },
-  ],
-  gym_admin: [
-    { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/admin/members", label: "Members", icon: Users },
-    { to: "/admin/memberships", label: "Membership", icon: Signature },
-    { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
-    { to: "/admin/attendance", label: "Attendance", icon: CalendarDays },
-    { to: "/admin/workouts", label: "Workouts", icon: Dumbbell },
-    { to: "/admin/classes", label: "Classes & Schedule", icon: CalendarDays },
-    { to: "/admin/trainers", label: "Trainers", icon: Users },
     { to: "/admin/payments", label: "Payments", icon: WalletCards },
     { to: "/admin/reports", label: "Reports", icon: TrendingUp },
     { to: "/admin/notifications", label: "Notifications", icon: Bell },
@@ -219,8 +201,12 @@ function getRoleRoute(role: Role) {
 
 function resolveRoleFromEmail(email: string): Role {
   const normalized = email.toLowerCase();
-  if (normalized.includes("admin")) return "gym_admin";
-  if (normalized.includes("trainer")) return "trainer";
+  if (normalized.includes("admin") || normalized.includes("super")) {
+    return "super_admin";
+  }
+  if (normalized.includes("trainer")) {
+    return "trainer";
+  }
   return "member";
 }
 
@@ -809,35 +795,35 @@ function LandingPage() {
               <div className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-violet-400/20 bg-[#11141C] p-3 shadow-[0_30px_80px_rgba(15,17,24,0.7)] sm:rounded-[32px] sm:p-4">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.25),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(52,211,153,0.2),transparent_28%)]" />
                 <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#141823] p-3 sm:rounded-[24px] sm:p-4">
-                  <div className="relative overflow-hidden rounded-[18px] sm:rounded-[20px]">
+                  <div className="relative overflow-hidden rounded-[18px] sm:rounded-[20px] ring-1 ring-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                     <img
-                      src={gymGallery[1]}
-                      alt="Peter-GYM hero training scene"
-                      className="h-[260px] w-full rounded-[18px] object-cover object-center sm:h-[460px] [object-position:center_24%] scale-[1.08]"
+                      src="/gym/hero.jpeg"
+                      alt="Peter-GYM bodybuilder hero image"
+                      className="h-[260px] w-full rounded-[18px] object-cover object-center sm:h-[460px] [object-position:center_8%] scale-[1.12] contrast-[1.08] saturate-[0.9] -translate-y-3 sm:-translate-y-6"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/25 to-[#090A0F]/10" />
                   </div>
 
-                  <div className="absolute left-3 top-3 rounded-2xl border border-violet-400/20 bg-[#090A0F]/80 p-2.5 shadow-lg backdrop-blur-md sm:left-8 sm:top-8 sm:p-3">
-                    <div className="text-[9px] uppercase tracking-[0.24em] text-slate-400 sm:text-[10px]">
+                  <div className="absolute left-3 top-2 rounded-xl border border-violet-400/20 bg-[#090A0F]/70 p-2 shadow-lg backdrop-blur-md sm:left-6 sm:top-5 sm:p-2.5">
+                    <div className="text-[8px] uppercase tracking-[0.22em] text-slate-400 sm:text-[9px]">
                       Body score
                     </div>
-                    <div className="mt-2 text-xl font-bold text-white sm:text-2xl">
+                    <div className="mt-1.5 text-lg font-bold text-white sm:text-xl">
                       88%
                     </div>
-                    <div className="mt-2 h-2 w-20 overflow-hidden rounded-full bg-white/5 sm:w-28">
+                    <div className="mt-1.5 h-1.5 w-16 overflow-hidden rounded-full bg-white/5 sm:w-20">
                       <div className="h-full w-[88%] rounded-full bg-gradient-to-r from-violet-500 to-emerald-400" />
                     </div>
                   </div>
 
-                  <div className="absolute right-3 bottom-3 rounded-2xl border border-emerald-400/20 bg-[#090A0F]/80 p-2.5 shadow-lg backdrop-blur-md sm:right-8 sm:bottom-8 sm:p-3">
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 sm:text-[10px]">
+                  <div className="absolute right-3 bottom-2 rounded-xl border border-emerald-400/20 bg-[#090A0F]/70 p-2 shadow-lg backdrop-blur-md sm:right-6 sm:bottom-3 sm:p-2.5">
+                    <div className="text-[8px] uppercase tracking-[0.18em] text-slate-400 sm:text-[9px]">
                       Weekly gain
                     </div>
-                    <div className="mt-2 text-xl font-bold text-white sm:text-2xl">
+                    <div className="mt-1 text-base font-bold text-white sm:text-xl">
                       +18.2%
                     </div>
-                    <div className="mt-1 text-[10px] text-emerald-300 sm:text-xs">
+                    <div className="mt-0.5 text-[8px] text-emerald-300 sm:text-[9px]">
                       strength & definition
                     </div>
                   </div>
@@ -864,21 +850,21 @@ function LandingPage() {
                 title: "Lean strength",
                 description:
                   "Build a tighter physique with disciplined programming and measurable progress.",
-                image: gymGallery[2],
+                image: equipmentGallery[2],
               },
               {
                 badge: "Mass drive",
                 title: "Power build",
                 description:
                   "Train for explosive strength, size, and confidence with guided performance blocks.",
-                image: gymGallery[1],
+                image: equipmentGallery[1],
               },
               {
                 badge: "Elite routine",
                 title: "Performance mode",
                 description:
                   "Turn repetition into results with premium coaching and a stronger training rhythm.",
-                image: gymGallery[3],
+                image: equipmentGallery[0],
               },
             ].map((item) => (
               <div
@@ -945,9 +931,9 @@ function LandingPage() {
                 desc: "Create plans, assign routines, and track performance.",
               },
               {
-                title: "Trainer Management",
+                title: "Performance Insights",
                 icon: ShieldCheck,
-                desc: "Coordinate trainers, schedules, and member assignments.",
+                desc: "Monitor progress, retention, and performance without extra role complexity.",
               },
               {
                 title: "Classes and Scheduling",
@@ -960,9 +946,9 @@ function LandingPage() {
                 desc: "See revenue, collect payments, and analyze growth trends.",
               },
               {
-                title: "Role-Based Dashboards",
+                title: "Unified Dashboards",
                 icon: LayoutDashboard,
-                desc: "Deliver optimized experiences for admin, trainer, and member roles.",
+                desc: "Deliver optimized experiences for a single admin workflow and member access.",
               },
             ].map(({ title, icon: Icon, desc }) => (
               <div
@@ -1396,7 +1382,7 @@ function AppShell() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/home");
   };
 
   return (
@@ -1756,7 +1742,7 @@ function DashboardHeroBanner() {
               </div>
               <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-2">
                 <div className="text-base font-semibold text-gym-text">6</div>
-                <div className="mt-1">Trainers</div>
+                <div className="mt-1">Classes</div>
               </div>
             </div>
           </div>
@@ -3586,8 +3572,7 @@ function DeveloperProfilePage() {
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
-  const canEdit =
-    !!user && (user.role === "super_admin" || user.role === "gym_admin");
+  const canEdit = !!user && user.role === "super_admin";
 
   useEffect(() => {
     let active = true;
@@ -4184,6 +4169,12 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const demoAccounts = [
+    { label: "Admin", email: "superadmin@gymflow.local", password: "demo1234" },
+    { label: "Trainer", email: "trainer@gymflow.local", password: "demo1234" },
+    { label: "Member", email: "member@gymflow.local", password: "demo1234" },
+  ];
+
   if (user) {
     return <Navigate to={getRoleRoute(user.role)} replace />;
   }
@@ -4286,6 +4277,28 @@ function LoginPage() {
             {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-6 rounded-2xl border border-violet-400/15 bg-violet-500/5 p-3">
+          <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-violet-200/80">
+            Demo accounts
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {demoAccounts.map((account) => (
+              <button
+                key={account.label}
+                type="button"
+                onClick={() => {
+                  setEmail(account.email);
+                  setPassword(account.password);
+                }}
+                className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-left text-[11px] text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/5"
+              >
+                <div className="font-semibold text-white">{account.label}</div>
+                <div className="mt-1 truncate text-slate-400">{account.email}</div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <p className="mt-5 text-center text-sm text-slate-300">
           Don’t have an account?{" "}
@@ -4412,11 +4425,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        <Route
-          element={
-            <ProtectedRoute allowedRoles={["super_admin", "gym_admin"]} />
-          }
-        >
+        <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
           <Route path="/admin" element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="features" element={<GymFeaturesPage />} />
@@ -4427,7 +4436,6 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="classes" element={<AttendancePage />} />
-            <Route path="trainers" element={<TrainersPage />} />
             <Route path="workouts" element={<WorkoutsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
