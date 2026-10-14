@@ -299,3 +299,281 @@ img {
     padding-right: 0.875rem;
   }
 }
+
+/* --- Diwali Festive Styling & Realistic Animations --- */
+@keyframes flame-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1.5deg);
+    filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 20px #ef4444);
+    opacity: 0.95;
+  }
+  25% {
+    transform: scale(1.08, 0.94) rotate(1.8deg);
+    filter: drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 24px #ea580c);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.96, 1.05) rotate(-2deg);
+    filter: drop-shadow(0 0 9px #f59e0b) drop-shadow(0 0 18px #ef4444);
+    opacity: 0.9;
+  }
+  75% {
+    transform: scale(1.04, 0.97) rotate(1.2deg);
+    filter: drop-shadow(0 0 15px #fde047) drop-shadow(0 0 26px #f97316);
+    opacity: 0.98;
+  }
+}
+
+@keyframes diya-glow-pulse {
+  0%, 100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes festive-sparkle {
+  0%, 100% {
+    transform: translateY(0px) scale(0.7);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-9px) scale(1.25);
+    opacity: 0.95;
+  }
+}
+
+@keyframes festive-burst {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70%, 100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes golden-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes festive-pop {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+  65% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-festive-pop {
+  animation: festive-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-flame {
+  animation: flame-flicker 2.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-diya-glow {
+  animation: diya-glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-sparkle-1 {
+  animation: festive-sparkle 3.5s ease-in-out infinite;
+}
+
+.animate-sparkle-2 {
+  animation: festive-sparkle 4.2s ease-in-out 1.2s infinite;
+}
+
+.animate-sparkle-3 {
+  animation: festive-sparkle 3.8s ease-in-out 2s infinite;
+}
+
+.animate-burst-1 {
+  animation: festive-burst 5s ease-out infinite;
+}
+
+.animate-burst-2 {
+  animation: festive-burst 5.5s ease-out 2.5s infinite;
+}
+
+.diwali-gold-gradient {
+  background: linear-gradient(135deg, #fde047 0%, #f59e0b 50%, #d97706 100%);
+}
+
+.diwali-festive-card {
+  position: relative;
+  background: radial-gradient(circle at 85% 25%, rgba(245, 158, 11, 0.18), transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.25), transparent 50%),
+              linear-gradient(135deg, #161128 0%, #0d0f18 55%, #18120b 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 12px 40px -10px rgba(245, 158, 11, 0.2), 0 0 20px rgba(139, 92, 246, 0.12);
+}
+
+.diwali-claim-btn {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  color: #1a1005;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  transition: all 0.25s ease;
+}
+
+.diwali-claim-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+}
+
+.diwali-claim-btn:active {
+  transform: translateY(1px);
+}
+
+/* --- Dussehra (Vijayadashami) Festival Styling --- */
+@keyframes victory-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.6)) drop-shadow(0 0 20px rgba(234, 88, 12, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.85)) drop-shadow(0 0 28px rgba(234, 88, 12, 0.6));
+  }
+}
+
+.animate-victory-glow {
+  animation: victory-glow 2.8s ease-in-out infinite;
+}
+
+.dussehra-festive-card {
+  position: relative;
+  background: radial-gradient(circle at 85% 20%, rgba(249, 115, 22, 0.22), transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(180, 83, 9, 0.25), transparent 50%),
+              linear-gradient(135deg, #1c100a 0%, #110d18 55%, #180d07 100%);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  box-shadow: 0 12px 40px -10px rgba(249, 115, 22, 0.25), 0 0 20px rgba(217, 119, 6, 0.15);
+}
+
+.dussehra-claim-btn {
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 50%, #c2410c 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.45);
+  transition: all 0.25s ease;
+}
+
+.dussehra-claim-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(234, 88, 12, 0.65);
+  transform: translateY(-1px);
+}
+
+/* --- Navratri Festival Styling --- */
+@keyframes garba-sway {
+  0%, 100% {
+    transform: rotate(-1.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2deg) translateY(-2px);
+  }
+}
+
+.animate-garba-sway {
+  animation: garba-sway 3.2s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+.navratri-festive-card {
+  position: relative;
+  background: radial-gradient(circle at 85% 20%, rgba(217, 70, 239, 0.22), transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(147, 51, 234, 0.28), transparent 50%),
+              linear-gradient(135deg, #1f0b24 0%, #120a1c 55%, #17091f 100%);
+  border: 1px solid rgba(217, 70, 239, 0.4);
+  box-shadow: 0 12px 40px -10px rgba(217, 70, 239, 0.25), 0 0 20px rgba(168, 85, 247, 0.15);
+}
+
+.navratri-claim-btn {
+  background: linear-gradient(135deg, #f43f5e 0%, #d946ef 50%, #8b5cf6 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(217, 70, 239, 0.45);
+  transition: all 0.25s ease;
+}
+
+.navratri-claim-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(217, 70, 239, 0.65);
+  transform: translateY(-1px);
+}
+
+/* --- New Year Festival Styling --- */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(8px) rotate(18deg);
+    opacity: 0.6;
+  }
+}
+
+.animate-confetti {
+  animation: confetti-fall 2.5s ease-in-out infinite alternate;
+}
+
+.newyear-festive-card {
+  position: relative;
+  background: radial-gradient(circle at 85% 20%, rgba(250, 204, 21, 0.2), transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(124, 58, 237, 0.3), transparent 50%),
+              linear-gradient(135deg, #0b1126 0%, #0d0f1a 55%, #120c24 100%);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  box-shadow: 0 12px 40px -10px rgba(250, 204, 21, 0.25), 0 0 20px rgba(124, 58, 237, 0.2);
+}
+
+.newyear-claim-btn {
+  background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
+  color: #1a1200;
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.45);
+  transition: all 0.25s ease;
+}
+
+.newyear-claim-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(234, 179, 8, 0.65);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-flame,
+  .animate-diya-glow,
+  .animate-sparkle-1,
+  .animate-sparkle-2,
+  .animate-sparkle-3,
+  .animate-burst-1,
+  .animate-burst-2,
+  .animate-victory-glow,
+  .animate-garba-sway,
+  .animate-confetti {
+    animation: none !important;
+  }
+}
+

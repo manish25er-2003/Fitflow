@@ -124,3 +124,27 @@ export interface ActivityItem {
   detail: string;
   time: string;
 }
+
+export type OfferStatus = "Active" | "Inactive";
+export type FestiveType = "diwali" | "dussehra" | "navratri" | "new_year" | "custom";
+
+export interface OfferRecord {
+  id: string;
+  festivalName: string; // e.g. "Diwali" | "Dussehra" | "Navratri" | "New Year" | "Custom"
+  name: string;
+  description: string;
+  originalPrice: number;
+  discountedPrice: number;
+  planId: string;
+  planName: string;
+  durationDays: number;
+  startDate: string;
+  expiryDate: string;
+  status: OfferStatus;
+  badge?: string;
+  code?: string;
+  festiveType: FestiveType;
+  imageUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

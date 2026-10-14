@@ -232,7 +232,7 @@ export async function checkInMember(user: SessionUser): Promise<{
         gymId: effectiveGymId,
         date: todayStr,
         checkIn: timeNowStr,
-        status: "Checked In",
+        status: "Checked In" as const,
         checkInTimestamp: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

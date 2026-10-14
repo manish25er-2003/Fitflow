@@ -76,6 +76,24 @@ service cloud.firestore {
       // 4. Only admins can delete attendance records
       allow delete: if isAdmin();
     }
+
+    // Offers Collection
+    match /offers/{offerId} {
+      // Anyone can read active festival offers
+      allow read: if true;
+      // Only Admins can create, update, or delete offers
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Payments Collection
+    match /payments/{paymentId} {
+      // Authenticated users and admins can read payments
+      allow read: if isAuthenticated();
+      // Authenticated members can record payment
+      allow create: if isAuthenticated();
+      // Only admins can update or delete payment records
+      allow update, delete: if isAdmin();
+    }
   }
 }
 

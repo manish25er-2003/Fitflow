@@ -30,6 +30,8 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Flame,
+  Gift,
   LayoutDashboard,
   LockKeyhole,
   LogIn,
@@ -107,6 +109,8 @@ import {
   subscribeAttendance,
   saveLocalAttendanceRecords,
 } from "./lib/attendanceService";
+import { DiwaliOfferBanner } from "./components/DiwaliOfferBanner";
+import { AdminOffersManager } from "./components/AdminOffersManager";
 import type {
   AttendanceRecord,
   MemberRecord,
@@ -155,6 +159,24 @@ function emitGymDataUpdate() {
   }
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener("petergym-offer-claimed", (e: Event) => {
+    const custom = e as CustomEvent<{ payment: PaymentRecord; plan: any }>;
+    if (custom.detail?.payment) {
+      sharedPayments = [custom.detail.payment, ...sharedPayments];
+    }
+    if (custom.detail?.plan && sharedMembers.length > 0) {
+      sharedMembers[0] = {
+        ...sharedMembers[0],
+        plan: custom.detail.plan.planName,
+        membershipEnd: custom.detail.plan.expiryDate,
+        status: "Active",
+      };
+    }
+    emitGymDataUpdate();
+  });
+}
+
 function useSharedGymData() {
   const [members, setMembers] = useState(() => [...sharedMembers]);
   const [payments, setPayments] = useState(() => [...sharedPayments]);
@@ -170,9 +192,11 @@ function useSharedGymData() {
     if (typeof window !== "undefined") {
       window.addEventListener(GYM_DATA_UPDATED_EVENT, syncData);
       window.addEventListener(ATTENDANCE_UPDATED_EVENT, syncData);
+      window.addEventListener("petergym-offer-claimed", syncData);
       return () => {
         window.removeEventListener(GYM_DATA_UPDATED_EVENT, syncData);
         window.removeEventListener(ATTENDANCE_UPDATED_EVENT, syncData);
+        window.removeEventListener("petergym-offer-claimed", syncData);
       };
     }
   }, []);
@@ -186,6 +210,7 @@ const sidebarMenus: Record<
 > = {
   super_admin: [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admin/offers", label: "Festive Offers", icon: Sparkles },
     { to: "/admin/members", label: "Members", icon: Users },
     { to: "/admin/memberships", label: "Membership", icon: Signature },
     { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
@@ -1452,7 +1477,7 @@ function AppShell() {
         </aside>
 
         <div className="flex min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
-          <header className="native-toolbar px-3.5 py-3 sm:px-4 md:px-6">
+          <header className="native-toolbar px-4 py-3 sm:px-6 md:px-8">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <button
@@ -1462,15 +1487,15 @@ function AppShell() {
                 >
                   <Menu className="h-4 w-4" />
                 </button>
-                <div className="flex min-w-0 items-center gap-2 rounded-xl border border-gym-border bg-gym-panel px-2 py-2 text-[11px] text-gym-text/75 sm:text-sm">
-                  <BrandLogo mode="mark" className="h-6 w-6 rounded-lg" />
-                  <span className="truncate font-medium text-gym-text">
+                <div className="flex min-w-0 items-center gap-2 rounded-xl border border-gym-border bg-gym-panel px-2.5 py-2 text-xs text-gym-text/80 sm:text-sm">
+                  <BrandLogo mode="mark" className="h-6 w-6 rounded-lg shrink-0" />
+                  <span className="truncate font-semibold text-gym-text">
                     {gymProfile.name}
                   </span>
-                  <span className="mx-1.5 hidden text-gym-muted sm:mx-2 sm:inline">
+                  <span className="mx-1 hidden text-gym-muted sm:inline">
                     •
                   </span>
-                  <span className="hidden sm:inline">
+                  <span className="hidden sm:inline text-gym-muted">
                     {gymProfile.location}
                   </span>
                 </div>
@@ -1484,12 +1509,12 @@ function AppShell() {
                     className="w-28 bg-transparent text-sm text-gym-text outline-none placeholder:text-gym-muted xl:w-32"
                   />
                 </div>
-                <button className="rounded-xl border border-gym-border bg-gym-panel p-2.5 text-gym-text/80">
+                <button className="rounded-xl border border-gym-border bg-gym-panel p-2.5 text-gym-text/80 hover:text-white transition">
                   <Bell className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className="hidden rounded-xl border border-gym-border bg-gym-panel p-2.5 text-gym-text/80 sm:inline-flex"
+                  className="rounded-xl border border-gym-border bg-gym-panel p-2.5 text-gym-text/80 hover:text-white transition"
                   onClick={() =>
                     setTheme((current) =>
                       current === "dark" ? "light" : "dark",
@@ -1506,15 +1531,15 @@ function AppShell() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gym-border bg-gym-panel p-1.5 shadow-soft">
                   <BrandLogo mode="mark" className="h-full w-full rounded-lg" />
                 </div>
-                <div className="hidden items-center gap-2 rounded-xl border border-gym-border bg-gym-panel px-2 py-1.5 sm:flex sm:gap-3">
+                <div className="hidden items-center gap-2 rounded-xl border border-gym-border bg-gym-panel px-2.5 py-1.5 sm:flex sm:gap-3">
                   <div className="h-8 w-8 overflow-hidden rounded-full border border-gym-border bg-gym-card shadow-soft">
                     <ProfileAvatar alt={user.name} className="rounded-full" />
                   </div>
                   <div className="hidden text-left md:block">
-                    <p className="text-sm font-medium text-gym-text">
+                    <p className="text-sm font-medium text-gym-text truncate max-w-[120px]">
                       {user.name}
                     </p>
-                    <p className="text-[11px] text-gym-muted">
+                    <p className="text-[11px] text-gym-muted capitalize">
                       {user.role.replace("_", " ")}
                     </p>
                   </div>
@@ -1523,7 +1548,7 @@ function AppShell() {
             </div>
           </header>
 
-          <main className="min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden p-3.5 pb-24 sm:p-4 sm:pb-6 md:p-6">
+          <main className="min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-28 sm:px-6 sm:py-6 md:px-8">
             {pathname === "/" ? (
               <Navigate to={getRoleRoute(user.role)} replace />
             ) : null}
@@ -1533,22 +1558,22 @@ function AppShell() {
       </div>
 
       <div
-        className={`fixed inset-0 z-20 bg-slate-950/50 transition-opacity duration-200 lg:hidden ${mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-30 w-[82%] max-w-[320px] -translate-x-full border-r border-violet-400/10 bg-[#0d1018]/90 shadow-[0_30px_80px_rgba(15,17,24,0.85)] backdrop-blur-2xl transition-transform duration-200 lg:hidden ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-[84%] max-w-[320px] -translate-x-full border-r border-violet-400/20 bg-[#0d1018]/95 shadow-[0_30px_80px_rgba(15,17,24,0.9)] backdrop-blur-2xl transition-transform duration-200 lg:hidden overflow-y-auto ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between border-b border-violet-400/10 px-4 py-4">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sticky top-0 bg-[#0d1018] z-10">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10">
               <BrandLogo mode="mark" className="h-7 w-7 rounded-xl" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-white">Peter-GYM</div>
+              <div className="text-sm font-bold text-white">Peter-GYM</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                Performance club
+                Fitflow Club
               </div>
             </div>
           </div>
@@ -1560,7 +1585,7 @@ function AppShell() {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="space-y-3 p-4">
+        <nav className="space-y-2 p-4 pb-12">
           {menu.map(({ to, label, icon: Icon }) => {
             const isLogout = label === "Logout";
             return (
@@ -1568,7 +1593,7 @@ function AppShell() {
                 key={to}
                 to={to === "/login" ? "#" : to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-2xl px-3 py-3 text-[15px] font-medium transition-all duration-200 ${isActive ? "border border-violet-400/30 bg-violet-500/10 text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.12)]" : "text-slate-200 hover:bg-white/5 hover:text-white"} ${isLogout ? "mt-3 border border-red-500/20 bg-red-500/5 text-red-200 hover:bg-red-500/10" : ""}`
+                  `flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all duration-200 ${isActive ? "border border-violet-400/30 bg-violet-500/15 text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.15)]" : "text-slate-200 hover:bg-white/5 hover:text-white"} ${isLogout ? "mt-4 border border-red-500/20 bg-red-500/5 text-red-200 hover:bg-red-500/10" : ""}`
                 }
                 onClick={(event) => {
                   if (isLogout) {
@@ -1586,20 +1611,30 @@ function AppShell() {
         </nav>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gym-border bg-gym-sidebar/95 px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 backdrop-blur-md lg:hidden">
-        <div className="grid grid-cols-4 gap-2">
-          {menu.slice(0, 4).map(({ to, label, icon: Icon }) => (
+      {/* Fixed bottom navigation bar for mobile with safe area */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gym-border bg-gym-sidebar/95 px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 backdrop-blur-md lg:hidden shadow-lg">
+        <div className="grid grid-cols-4 gap-1.5">
+          {menu.slice(0, 3).map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[10px] ${isActive ? "bg-gym-accent/15 text-gym-accent" : "text-gym-text/65"}`
+                `flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium transition ${isActive ? "bg-gym-accent/15 text-gym-accent font-bold" : "text-gym-text/65 hover:text-gym-text"}`
               }
             >
-              <Icon className="h-5 w-5" />
-              <span className="leading-none">{label}</span>
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="leading-none truncate max-w-[68px] text-center">{label}</span>
             </NavLink>
           ))}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium text-gym-text/65 hover:text-gym-text transition"
+            aria-label="Open full menu"
+          >
+            <Menu className="h-5 w-5 shrink-0 text-gym-accent" />
+            <span className="leading-none truncate max-w-[68px] text-center">More</span>
+          </button>
         </div>
       </nav>
     </div>
@@ -1627,24 +1662,24 @@ function StatCard({
   };
 
   return (
-    <div className="panel p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-2">
+    <div className="panel p-3 sm:p-4 min-w-0">
+      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] text-gym-muted sm:text-sm">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-gym-text sm:text-3xl">
+          <p className="text-[11px] text-gym-muted sm:text-sm truncate">{label}</p>
+          <p className="mt-1 sm:mt-2 text-xl font-bold tracking-tight text-gym-text sm:text-2xl md:text-3xl truncate">
             {value}
           </p>
         </div>
         {change && (
           <span
-            className={`rounded-full px-2 py-1 text-[10px] font-medium sm:text-xs ${styles[accent]}`}
+            className={`shrink-0 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] font-medium sm:text-xs ${styles[accent]}`}
           >
             {change}
           </span>
         )}
       </div>
       {detail && (
-        <p className="mt-3 text-[10px] text-gym-muted sm:text-xs">{detail}</p>
+        <p className="mt-2 sm:mt-3 text-[10px] text-gym-muted sm:text-xs truncate">{detail}</p>
       )}
     </div>
   );
@@ -1802,6 +1837,7 @@ function DashboardHeroBanner() {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const { members, payments, attendance } = useSharedGymData();
   const totalMembers = members.length;
   const activeMembers = members.filter(
@@ -1841,6 +1877,38 @@ function DashboardPage() {
       </div>
 
       <DashboardHeroBanner />
+
+      {/* Admin Festival Offer Management Banner */}
+      <div className="panel p-4 sm:p-5 border-amber-500/35 bg-gradient-to-r from-[#1c142b] via-[#120f20] to-[#18120b] shadow-[0_4px_25px_rgba(245,158,11,0.12)]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-300">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  Festive Offers & Campaigns Hub
+                </h3>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                  Real-Time Sync
+                </span>
+              </div>
+              <p className="text-xs text-gym-muted mt-0.5">
+                Manage Diwali, Dussehra, Navratri, New Year, and custom festival offers. Synchronizes instantly with the User Dashboard.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/offers")}
+            className="diwali-claim-btn px-4 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 self-start sm:self-auto shadow-md"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Manage Festival Offers</span>
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard
@@ -2029,20 +2097,29 @@ function DashboardPage() {
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <button
               className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm"
-              onClick={() => (window.location.href = "/admin/members/new")}
+              onClick={() => navigate("/admin/members/new")}
             >
               <Users className="h-4 w-4 text-gym-accent sm:h-5 sm:w-5" /> Add
               Member
             </button>
-            <button className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm">
+            <button
+              className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm"
+              onClick={() => navigate("/admin/payments")}
+            >
               <CreditCard className="h-4 w-4 text-gym-accent sm:h-5 sm:w-5" />{" "}
               Payment
             </button>
-            <button className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm">
+            <button
+              className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm"
+              onClick={() => navigate("/admin/attendance")}
+            >
               <CheckCircle2 className="h-4 w-4 text-gym-accent sm:h-5 sm:w-5" />{" "}
               Check-in
             </button>
-            <button className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm">
+            <button
+              className="flex items-center gap-2 rounded-2xl border border-gym-border bg-gym-panel p-3 text-left text-[11px] font-medium hover:border-gym-accent/60 sm:gap-3 sm:p-4 sm:text-sm"
+              onClick={() => navigate("/admin/trainers")}
+            >
               <Dumbbell className="h-4 w-4 text-gym-accent sm:h-5 sm:w-5" />{" "}
               Trainer
             </button>
@@ -2051,7 +2128,7 @@ function DashboardPage() {
       </div>
 
       <div className="panel p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.24em] text-gym-muted sm:text-sm">
               Website features
@@ -2061,8 +2138,8 @@ function DashboardPage() {
             </h3>
           </div>
           <button
-            className="btn-secondary px-3 py-2 text-xs"
-            onClick={() => (window.location.href = "/admin/features")}
+            className="btn-secondary px-3 py-2 text-xs self-start sm:self-auto"
+            onClick={() => navigate("/admin/features")}
           >
             Open feature hub
           </button>
@@ -2188,6 +2265,7 @@ function DashboardPage() {
 }
 
 function MembersPage() {
+  const navigate = useNavigate();
   const { members, setMembers } = useSharedGymData();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
@@ -2208,55 +2286,133 @@ function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-gym-muted">
             Members
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Member directory</h1>
+          <h1 className="mt-2 text-2xl sm:text-3xl font-semibold">Member directory</h1>
         </div>
-        <a href="/admin/members/new" className="btn-primary">
+        <button
+          type="button"
+          onClick={() => navigate("/admin/members/new")}
+          className="btn-primary w-full sm:w-auto text-center"
+        >
           Add member
-        </a>
+        </button>
       </div>
 
-      <div className="panel p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
+      <div className="panel p-3.5 sm:p-4">
+        <div className="grid gap-2.5 sm:gap-3 md:grid-cols-[1fr_180px_180px]">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="input"
+            className="input text-xs sm:text-sm"
             placeholder="Search name, email, phone, ID"
           />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="input"
+            className="input text-xs sm:text-sm"
           >
             <option value="All">All status</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
             <option value="Suspended">Suspended</option>
           </select>
-          <button className="btn-secondary">Export CSV</button>
+          <button
+            type="button"
+            className="btn-secondary w-full text-xs sm:text-sm"
+            onClick={() => {
+              const headers = ["ID", "Name", "Email", "Phone", "Plan", "Trainer", "Expiry", "Status"];
+              const rows = filteredMembers.map(m => [m.memberId, m.name, m.email, m.phone, m.plan, m.trainer, m.membershipEnd, m.status]);
+              const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", "fitflow_members.csv");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
+            Export CSV
+          </button>
         </div>
       </div>
 
       <div className="panel overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile card view */}
+        <div className="divide-y divide-gym-border md:hidden">
+          {filteredMembers.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gym-muted">
+              No members found matching your search.
+            </div>
+          ) : (
+            filteredMembers.map((member) => (
+              <div key={member.id} className="p-3.5 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gym-accent/15 font-semibold text-gym-accent">
+                      {member.avatar}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gym-text truncate text-sm">
+                        {member.name}
+                      </p>
+                      <p className="text-xs text-gym-muted truncate">
+                        {member.memberId} • {member.phone}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="chip shrink-0 text-[10px]">{member.status}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs rounded-xl bg-gym-panel p-2.5 border border-gym-border/60">
+                  <div>
+                    <span className="text-gym-muted">Plan: </span>
+                    <span className="font-medium text-gym-text truncate block">{member.plan}</span>
+                  </div>
+                  <div>
+                    <span className="text-gym-muted">Trainer: </span>
+                    <span className="font-medium text-gym-text truncate block">{member.trainer}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gym-muted">Expires: </span>
+                    <span className="font-medium text-gym-text">{member.membershipEnd}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="btn-secondary py-2 text-xs w-full justify-center"
+                    onClick={() => navigate(`/admin/members/${member.id}`)}
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary py-2 text-xs w-full justify-center"
+                    onClick={() => navigate(`/admin/members/${member.id}/edit`)}
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop table view */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gym-border text-left text-sm">
             <thead className="bg-gym-panel">
               <tr>
                 <th className="px-4 py-3 font-medium text-gym-muted">Member</th>
                 <th className="px-4 py-3 font-medium text-gym-muted">Plan</th>
-                <th className="px-4 py-3 font-medium text-gym-muted">
-                  Trainer
-                </th>
+                <th className="px-4 py-3 font-medium text-gym-muted">Trainer</th>
                 <th className="px-4 py-3 font-medium text-gym-muted">Expiry</th>
                 <th className="px-4 py-3 font-medium text-gym-muted">Status</th>
-                <th className="px-4 py-3 font-medium text-gym-muted">
-                  Actions
-                </th>
+                <th className="px-4 py-3 font-medium text-gym-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gym-border bg-gym-card/60">
@@ -2268,22 +2424,14 @@ function MembersPage() {
                         {member.avatar}
                       </div>
                       <div>
-                        <p className="font-medium text-gym-text">
-                          {member.name}
-                        </p>
-                        <p className="text-xs text-gym-muted">
-                          {member.memberId}
-                        </p>
+                        <p className="font-medium text-gym-text">{member.name}</p>
+                        <p className="text-xs text-gym-muted">{member.memberId}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gym-text/90">{member.plan}</td>
-                  <td className="px-4 py-3 text-gym-text/90">
-                    {member.trainer}
-                  </td>
-                  <td className="px-4 py-3 text-gym-text/90">
-                    {member.membershipEnd}
-                  </td>
+                  <td className="px-4 py-3 text-gym-text/90">{member.trainer}</td>
+                  <td className="px-4 py-3 text-gym-text/90">{member.membershipEnd}</td>
                   <td className="px-4 py-3">
                     <span className="chip">{member.status}</span>
                   </td>
@@ -2291,17 +2439,13 @@ function MembersPage() {
                     <div className="flex gap-2">
                       <button
                         className="btn-secondary px-2.5 py-1.5 text-xs"
-                        onClick={() =>
-                          (window.location.href = `/admin/members/${member.id}`)
-                        }
+                        onClick={() => navigate(`/admin/members/${member.id}`)}
                       >
                         View
                       </button>
                       <button
                         className="btn-primary px-2.5 py-1.5 text-xs"
-                        onClick={() =>
-                          (window.location.href = `/admin/members/${member.id}/edit`)
-                        }
+                        onClick={() => navigate(`/admin/members/${member.id}/edit`)}
                       >
                         Edit
                       </button>
@@ -2468,7 +2612,14 @@ function MembershipsPage() {
   } | null>(() => {
     if (typeof window === "undefined") return null;
     const saved = localStorage.getItem(`petergym-membership-${user?.id ?? "guest"}`);
-    return saved ? (JSON.parse(saved) as typeof activePlan) : null;
+    return saved
+      ? (JSON.parse(saved) as {
+          planId: string;
+          planName: string;
+          expiryDate: string;
+          amount: number;
+        })
+      : null;
   });
 
   const [selectedPlanId, setSelectedPlanId] = useState<"monthly" | "annual">(
@@ -2625,6 +2776,21 @@ function MembershipsPage() {
         </div>
       )}
 
+      {/* Festive Diwali Offer Banner */}
+      <DiwaliOfferBanner
+        user={{
+          id: user?.id || "guest",
+          name: user?.name || "Member",
+          email: user?.email || "",
+        }}
+        onOfferClaimed={() => {
+          const saved = localStorage.getItem(`petergym-membership-${user?.id ?? "guest"}`);
+          if (saved) {
+            setActivePlan(JSON.parse(saved));
+          }
+        }}
+      />
+
       {/* Plan cards */}
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Monthly Plan */}
@@ -2774,7 +2940,7 @@ function MembershipsPage() {
                 : "1 month · Full access · Cancel anytime"}
             </p>
           </div>
-          <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 px-5 py-3 text-right">
+          <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 px-4 sm:px-5 py-3 text-left sm:text-right w-full sm:w-auto">
             <p className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80">
               Total
             </p>
@@ -2790,7 +2956,7 @@ function MembershipsPage() {
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="btn-primary gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary w-full sm:w-auto justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handlePurchase}
             disabled={paymentState === "processing" || paymentState === "success"}
           >
@@ -3022,7 +3188,7 @@ function PaymentsPage() {
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {paymentOptions.map((option) => (
               <button
                 key={option.id}
@@ -3031,14 +3197,14 @@ function PaymentsPage() {
                   setSelectedPaymentMethod(option.id);
                   setForm((current) => ({ ...current, method: option.id }));
                 }}
-                className={`rounded-2xl border p-3 text-left transition ${selectedPaymentMethod === option.id ? "border-gym-accent bg-gym-accent/10" : "border-gym-border bg-gym-panel"}`}
+                className={`rounded-2xl border p-2 sm:p-3 text-center sm:text-left transition ${selectedPaymentMethod === option.id ? "border-gym-accent bg-gym-accent/10" : "border-gym-border bg-gym-panel"}`}
               >
                 <div
-                  className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${option.accent} font-black text-white`}
+                  className={`mx-auto sm:mx-0 mb-2 sm:mb-3 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br ${option.accent} font-black text-white text-xs sm:text-base`}
                 >
                   {option.badge}
                 </div>
-                <p className="text-sm font-medium text-gym-text">
+                <p className="text-xs sm:text-sm font-medium text-gym-text truncate">
                   {option.name}
                 </p>
               </button>
@@ -3069,22 +3235,22 @@ function PaymentsPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-gym-muted">
                   UPI ID
                 </p>
-                <p className="mt-2 text-sm font-medium text-gym-text">
+                <p className="mt-2 text-sm font-medium text-gym-text break-all">
                   {upiId}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handlePayNow}
-                className="btn-primary px-3 py-2 text-xs"
+                className="btn-primary px-3 py-2 text-xs shrink-0"
               >
                 Pay now
               </button>
             </div>
 
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gym-border bg-gym-card p-3">
-              <PaymentQrCode size={88} />
-              <div className="flex-1">
+              <PaymentQrCode size={80} />
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gym-text">
                   Scan to pay
                 </p>
@@ -3168,7 +3334,30 @@ function PaymentsPage() {
         </form>
 
         <div className="panel overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile payment cards */}
+          <div className="divide-y divide-gym-border md:hidden">
+            {payments.length === 0 ? (
+              <div className="p-6 text-center text-sm text-gym-muted">
+                No payment records found.
+              </div>
+            ) : (
+              payments.map((payment) => (
+                <div key={payment.id} className="p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-gym-text text-sm truncate">{payment.member}</p>
+                    <span className="chip text-[10px]">{payment.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-gym-accent text-sm">{formatCurrency(payment.amount)}</span>
+                    <span className="text-gym-muted">{payment.method} • {payment.date}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop payment table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gym-border text-sm">
               <thead className="bg-gym-panel">
                 <tr>
@@ -4885,11 +5074,32 @@ function AdminUsersPage() {
   );
 }
 
+function AdminOffersPage() {
+  return (
+    <div className="w-full max-w-full min-w-0">
+      <AdminOffersManager />
+    </div>
+  );
+}
+
 function MemberDashboardPage() {
   const { user } = useAuth();
   const { members, payments, attendance } = useSharedGymData();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Read persisted plan from localStorage (written by MembershipsPage after payment)
+  useEffect(() => {
+    const handleUpdate = () => setRefreshKey((k) => k + 1);
+    if (typeof window !== "undefined") {
+      window.addEventListener("petergym-offer-claimed", handleUpdate);
+      window.addEventListener(GYM_DATA_UPDATED_EVENT, handleUpdate);
+      return () => {
+        window.removeEventListener("petergym-offer-claimed", handleUpdate);
+        window.removeEventListener(GYM_DATA_UPDATED_EVENT, handleUpdate);
+      };
+    }
+  }, []);
+
+  // Read persisted plan from localStorage (written by MembershipsPage or Diwali Offer claim)
   const persistedMembership = (() => {
     if (typeof window === "undefined" || !user) return null;
     const saved = localStorage.getItem(`petergym-membership-${user.id}`);
@@ -4954,7 +5164,7 @@ function MemberDashboardPage() {
   const todaySession = memberAttendance.find((e) => e.date === today);
 
   return (
-    <div className="space-y-6">
+    <div key={refreshKey} className="space-y-6">
       <div className="panel p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -4968,7 +5178,7 @@ function MemberDashboardPage() {
               {profile.avatar}
             </div>
             <div>
-              <p className="font-medium text-gym-text">{displayPlan} Plan</p>
+              <p className="font-medium text-gym-text">{displayPlan}</p>
               <p className="text-sm text-gym-muted">
                 Expires on {displayExpiry}
               </p>
@@ -4976,6 +5186,17 @@ function MemberDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Premium Festive Diwali Offer Section (Admin-Controlled & Real-Time) */}
+      <DiwaliOfferBanner
+        user={{
+          id: user?.id || "m-me",
+          name: profile.name,
+          email: profile.email,
+        }}
+        onOfferClaimed={() => setRefreshKey((k) => k + 1)}
+      />
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Current plan"
@@ -5424,6 +5645,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
           <Route path="/admin" element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="offers" element={<AdminOffersPage />} />
             <Route path="features" element={<GymFeaturesPage />} />
             <Route path="members" element={<MembersPage />} />
             <Route path="members/new" element={<MemberFormPage />} />
