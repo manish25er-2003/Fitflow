@@ -5,6 +5,7 @@ import {
   Clock,
   Copy,
   Flame,
+  Mail,
   PartyPopper,
   ShieldCheck,
   ShoppingBag,
@@ -23,6 +24,8 @@ import {
   DiwaliDiyaArtwork,
   FestivalArtworkRenderer,
 } from "./FestivalArtworks";
+import { MembershipConfirmationModal } from "./MembershipConfirmationModal";
+import { getNotificationHistory } from "../lib/notificationService";
 import type { FestiveType, OfferRecord } from "../types";
 
 // Re-export DiwaliDiyaArtwork for backward compatibility
@@ -176,6 +179,7 @@ export function FestiveOfferCheckoutModal({
     planName: string;
     amount: number;
   } | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -243,7 +247,7 @@ export function FestiveOfferCheckoutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl border border-amber-500/30 bg-gradient-to-b from-[#19152b] via-[#110f1e] to-[#0a0812] p-5 sm:p-7 shadow-[0_24px_70px_rgba(139,92,246,0.3)] text-gym-text max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-3xl border border-amber-500/30 bg-gradient-to-b from-[#19152b] via-[#110f1e] to-[#0a0812] p-4 sm:p-7 shadow-[0_24px_70px_rgba(139,92,246,0.3)] text-gym-text max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         {paymentState !== "verifying" && (
           <button
@@ -294,13 +298,30 @@ export function FestiveOfferCheckoutModal({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleCompleteSuccess}
-              className="w-full py-3 px-5 rounded-xl font-extrabold text-sm bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-stone-950 shadow-lg shadow-emerald-500/25 hover:brightness-110 transition active:scale-98"
-            >
-              Continue to Dashboard
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowReceiptModal(true)}
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs border border-violet-400/40 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 transition flex items-center justify-center gap-1.5"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                View Email & SMS Receipt
+              </button>
+              <button
+                type="button"
+                onClick={handleCompleteSuccess}
+                className="w-full py-2.5 px-5 rounded-xl font-extrabold text-xs bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-stone-950 shadow-lg shadow-emerald-500/25 hover:brightness-110 transition active:scale-98"
+              >
+                Continue to Dashboard
+              </button>
+            </div>
+
+            {/* Receipt Modal */}
+            <MembershipConfirmationModal
+              isOpen={showReceiptModal}
+              onClose={() => setShowReceiptModal(false)}
+              result={getNotificationHistory()[0] || null}
+            />
           </div>
         )}
 
@@ -330,15 +351,15 @@ export function FestiveOfferCheckoutModal({
         {paymentState !== "success" && paymentState !== "verifying" && (
           <div>
             {/* Modal Header */}
-            <div className="flex items-center gap-3.5 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-3 sm:gap-3.5 border-b border-white/10 pb-4">
               <div className="flex-shrink-0">
                 <FestivalArtworkRenderer
                   festiveType={offer.festiveType || "diwali"}
-                  size={52}
+                  size={48}
                 />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${theme.badgeBg}`}>
                     {theme.festIcon} {festivalName} Special Deal
                   </span>
@@ -346,14 +367,14 @@ export function FestiveOfferCheckoutModal({
                     {discountPercent}% OFF
                   </span>
                 </div>
-                <h3 className="mt-1 text-lg sm:text-xl font-bold text-white truncate">
+                <h3 className="mt-1 text-base sm:text-xl font-bold text-white truncate">
                   {offer.name}
                 </h3>
               </div>
             </div>
 
             {/* Deal Breakdown (Amazon/Flipkart Deals Style) */}
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4 space-y-2.5 text-xs sm:text-sm">
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-3.5 sm:p-4 space-y-2.5 text-xs sm:text-sm">
               <div className="flex justify-between items-center text-gym-muted">
                 <span>Selected Membership:</span>
                 <span className="font-semibold text-white">
@@ -380,7 +401,7 @@ export function FestiveOfferCheckoutModal({
                   <p className="text-[10px] text-gym-muted">Includes full gym access & locker</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl sm:text-3xl font-black text-amber-300">
+                  <span className="text-xl sm:text-3xl font-black text-amber-300">
                     ₹{offer.discountedPrice}
                   </span>
                 </div>
@@ -394,7 +415,7 @@ export function FestiveOfferCheckoutModal({
                 <span className="text-emerald-400 text-[10px] font-bold">100% SECURE</span>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { id: "UPI", label: "UPI Apps", desc: "Fastest" },
                   { id: "GPay", label: "Google Pay", desc: "Instant" },
@@ -489,7 +510,7 @@ export function FestiveOfferCard({
 
   return (
     <div
-      className={`group relative rounded-2xl sm:rounded-3xl border ${theme.borderAccent} bg-gradient-to-b from-[#161226] via-[#100d1c] to-[#0c0a14] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_45px_rgba(139,92,246,0.22)] flex flex-col justify-between overflow-hidden`}
+      className={`group relative rounded-2xl sm:rounded-3xl border ${theme.borderAccent} bg-gradient-to-b from-[#161226] via-[#100d1c] to-[#0c0a14] p-4 sm:p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_45px_rgba(139,92,246,0.22)] flex flex-col justify-between overflow-hidden`}
     >
       {/* Ambient background glow & sparkles */}
       <FestiveSparkles festiveType={offer.festiveType} isPaused={isTabHidden} />
@@ -525,7 +546,7 @@ export function FestiveOfferCard({
             <span>{festivalName} Special</span>
           </span>
 
-          <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-amber-200 transition line-clamp-1">
+          <h3 className="text-base sm:text-xl font-black text-white group-hover:text-amber-200 transition line-clamp-1">
             {offer.name}
           </h3>
 
@@ -666,7 +687,7 @@ export function DiwaliOfferBanner({
               <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-spin" />
               <span>FESTIVAL MEGA DEALS • LIMITED TIME</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white mt-1.5 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-white mt-1.5 flex flex-wrap items-center gap-2">
               <span>Festival Dhamaka Offers</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-extrabold">
                 Up to {Math.max(...activeValidOffers.map((o) => Math.round(((o.originalPrice - o.discountedPrice) / o.originalPrice) * 100)))}% OFF
@@ -679,7 +700,7 @@ export function DiwaliOfferBanner({
 
           {/* Quick Festival Filter Tabs */}
           {availableFestivals.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs shrink-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs shrink-0 max-w-full touch-pan-x">
               <button
                 type="button"
                 onClick={() => setActiveCategory("all")}

@@ -452,14 +452,16 @@ export function AdminOffersManager() {
       </div>
 
       {/* Filter and stats row */}
-      <div className="panel p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gym-muted" />
-          <span className="font-semibold text-gym-text">Filter:</span>
+      <div className="panel p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 text-gym-muted font-semibold shrink-0">
+            <Filter className="h-4 w-4" />
+            <span className="text-gym-text">Filter:</span>
+          </div>
           <select
             value={selectedFestivalFilter}
             onChange={(e) => setSelectedFestivalFilter(e.target.value)}
-            className="input py-1 px-2.5 text-xs bg-gym-panel border-gym-border rounded-lg"
+            className="input py-1 px-2.5 text-xs bg-gym-panel border-gym-border rounded-lg flex-1 sm:flex-initial min-w-[120px]"
           >
             <option value="all">All Festivals</option>
             <option value="diwali">🪔 Diwali</option>
@@ -472,7 +474,7 @@ export function AdminOffersManager() {
           <select
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
-            className="input py-1 px-2.5 text-xs bg-gym-panel border-gym-border rounded-lg"
+            className="input py-1 px-2.5 text-xs bg-gym-panel border-gym-border rounded-lg flex-1 sm:flex-initial min-w-[130px]"
           >
             <option value="all">All Statuses ({offers.length})</option>
             <option value="active">Active & Live</option>
@@ -481,7 +483,7 @@ export function AdminOffersManager() {
           </select>
         </div>
 
-        <div className="flex items-center gap-3 text-gym-muted">
+        <div className="flex items-center gap-3 text-gym-muted text-[11px] sm:text-xs">
           <span>Total: <strong className="text-white">{offers.length}</strong></span>
           <span>•</span>
           <span>Live for Users: <strong className="text-emerald-400">{offers.filter((o) => o.status === "Active" && o.expiryDate >= today && (!o.startDate || o.startDate <= today)).length}</strong></span>
@@ -569,7 +571,7 @@ export function AdminOffersManager() {
             return (
               <div
                 key={offer.id}
-                className={`panel relative p-5 flex flex-col justify-between transition-all rounded-2xl border ${
+                className={`panel relative p-4 sm:p-5 flex flex-col justify-between transition-all rounded-2xl border ${
                   isCurrentlyActive
                     ? "border-amber-500/40 shadow-[0_4px_25px_rgba(245,158,11,0.14)]"
                     : "opacity-75 border-gym-border"
@@ -579,7 +581,7 @@ export function AdminOffersManager() {
                   {/* Top Header with Festive Miniature Artwork & Badges */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
+                      <div className="w-9 h-9 rounded-xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
                         <FestivalArtworkRenderer
                           festiveType={offer.festiveType || "diwali"}
                           size={32}
@@ -606,7 +608,7 @@ export function AdminOffersManager() {
                       </span>
                     </div>
 
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/40 text-[11px] font-black text-emerald-300">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/40 text-[11px] font-black text-emerald-300 shrink-0">
                       {discountPercent}% OFF
                     </span>
                   </div>
@@ -616,7 +618,7 @@ export function AdminOffersManager() {
                     <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400/90">
                       {offer.festivalName || "Special Festival"}
                     </span>
-                    <h3 className="text-lg font-bold text-gym-text">
+                    <h3 className="text-base sm:text-lg font-bold text-gym-text leading-snug">
                       {offer.name}
                     </h3>
                   </div>
@@ -626,7 +628,7 @@ export function AdminOffersManager() {
                   </p>
 
                   {/* Price Display */}
-                  <div className="mt-3 flex items-baseline gap-2">
+                  <div className="mt-3 flex flex-wrap items-baseline gap-2">
                     <span className="text-2xl font-black text-amber-300">
                       ₹{offer.discountedPrice}
                     </span>
@@ -669,12 +671,12 @@ export function AdminOffersManager() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons with comfortable mobile touch targets */}
                 <div className="mt-5 pt-3 border-t border-gym-border/80 flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => handleToggle(offer)}
-                    className={`flex-1 py-1.5 px-3 rounded-xl border text-xs font-bold transition ${
+                    className={`flex-1 min-h-[38px] py-1.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center ${
                       offer.status === "Active"
                         ? "border-amber-400/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
                         : "border-gym-border bg-gym-panel text-gym-muted hover:text-white"
@@ -686,7 +688,7 @@ export function AdminOffersManager() {
                   <button
                     type="button"
                     onClick={() => openEditModal(offer)}
-                    className="p-2 rounded-xl border border-gym-border bg-gym-panel text-gym-muted hover:text-gym-accent hover:border-gym-accent/40 transition"
+                    className="min-h-[38px] min-w-[38px] p-2 rounded-xl border border-gym-border bg-gym-panel text-gym-muted hover:text-gym-accent hover:border-gym-accent/40 transition flex items-center justify-center shrink-0"
                     title="Edit Offer"
                     aria-label="Edit Offer"
                   >
@@ -696,7 +698,7 @@ export function AdminOffersManager() {
                   <button
                     type="button"
                     onClick={() => handleDelete(offer)}
-                    className="p-2 rounded-xl border border-gym-border bg-gym-panel text-gym-muted hover:text-rose-400 hover:border-rose-400/40 transition"
+                    className="min-h-[38px] min-w-[38px] p-2 rounded-xl border border-gym-border bg-gym-panel text-gym-muted hover:text-rose-400 hover:border-rose-400/40 transition flex items-center justify-center shrink-0"
                     title="Delete Offer"
                     aria-label="Delete Offer"
                   >
@@ -837,7 +839,7 @@ export function AdminOffersManager() {
       {/* Create / Edit Modal */}
       {isCreating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-          <div className="relative w-full max-w-lg rounded-3xl border border-gym-border bg-gym-card p-5 sm:p-6 shadow-2xl text-gym-text max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl border border-gym-border bg-gym-card p-4 sm:p-6 shadow-2xl text-gym-text max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsCreating(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full border border-gym-border text-gym-muted hover:text-white"
@@ -854,7 +856,7 @@ export function AdminOffersManager() {
 
             <form onSubmit={handleSave} className="space-y-4 text-xs sm:text-sm">
               {/* Festival Type & Name Selection */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gym-muted mb-1 font-medium">
                     Festival Celebration
@@ -933,7 +935,7 @@ export function AdminOffersManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gym-muted mb-1 font-medium">
                     Regular Price (₹)
@@ -990,7 +992,7 @@ export function AdminOffersManager() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gym-muted mb-1 font-medium">
                     Applicable Plan
@@ -999,8 +1001,18 @@ export function AdminOffersManager() {
                     value={formData.planId}
                     onChange={(e) => {
                       const id = e.target.value;
-                      const name = id === "annual" ? "Annual" : "Monthly";
-                      const days = id === "annual" ? 365 : 30;
+                      let name = "Monthly";
+                      let days = 30;
+                      if (id === "annual") {
+                        name = "Annual";
+                        days = 365;
+                      } else if (id === "half_yearly") {
+                        name = "6-Month";
+                        days = 180;
+                      } else if (id === "quarterly") {
+                        name = "Quarterly";
+                        days = 90;
+                      }
                       setFormData({
                         ...formData,
                         planId: id,
@@ -1011,6 +1023,8 @@ export function AdminOffersManager() {
                     className="input"
                   >
                     <option value="monthly">Monthly Plan (30 Days)</option>
+                    <option value="quarterly">Quarterly Plan (90 Days)</option>
+                    <option value="half_yearly">6-Month Plan (180 Days)</option>
                     <option value="annual">Annual Plan (365 Days)</option>
                   </select>
                 </div>
@@ -1034,7 +1048,7 @@ export function AdminOffersManager() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gym-muted mb-1 font-medium">
                     Start Date
@@ -1065,7 +1079,7 @@ export function AdminOffersManager() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gym-muted mb-1 font-medium">
                     Badge Chip

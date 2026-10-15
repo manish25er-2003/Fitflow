@@ -85,7 +85,8 @@ import {
   trainers,
   workoutPlans,
 } from "./data/mockData";
-import profilePhoto from "./assets/manish-profile.svg";
+import profilePhoto from "./assets/intro-porfile.jpeg";
+import profilePhotoFallback from "./assets/manish-profile.svg";
 import gymPhoto1 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM (1).jpeg";
 import gymPhoto2 from "./assets/WhatsApp Image 2026-10-13 at 2.45.43 PM.jpeg";
 import gymPhoto3 from "./assets/WhatsApp Image 2026-10-13 at 1.51.41 PM (1).jpeg";
@@ -111,6 +112,11 @@ import {
 } from "./lib/attendanceService";
 import { DiwaliOfferBanner } from "./components/DiwaliOfferBanner";
 import { AdminOffersManager } from "./components/AdminOffersManager";
+import { MembershipConfirmationModal } from "./components/MembershipConfirmationModal";
+import {
+  sendMembershipConfirmation,
+  type NotificationDeliveryResult,
+} from "./lib/notificationService";
 import type {
   AttendanceRecord,
   MemberRecord,
@@ -130,6 +136,7 @@ type UserSession = {
   role: Role;
   avatar: string;
   gymId: string;
+  phone?: string;
 };
 
 type AuthContextType = {
@@ -379,6 +386,7 @@ function SplashIntroPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [countdown, setCountdown] = useState(3);
+  const [avatarSrc, setAvatarSrc] = useState(profilePhoto);
   const didAdvanceRef = useRef(false);
   const destination = user ? getRoleRoute(user.role) : "/home";
 
@@ -410,74 +418,89 @@ function SplashIntroPage() {
   }, [advance, destination, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#090A0F] px-4 py-5 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-1.25rem)] max-w-4xl items-center justify-center">
-        <div className="w-full overflow-hidden rounded-[32px] border border-violet-400/20 bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.24),transparent_28%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.18),transparent_32%),#090A0F] p-4 shadow-[0_0_0_1px_rgba(139,92,246,0.12),0_25px_80px_rgba(15,17,24,0.9)] sm:p-5 lg:p-7">
-          <div className="mb-5 flex items-center justify-center gap-3">
-            <BrandLogo mode="mark" className="h-12 w-12 sm:h-14 sm:w-14" />
-            <div className="text-left">
-              <div className="text-[9px] font-medium uppercase tracking-[0.32em] text-violet-200/80">
-                Peter-GYM
-              </div>
-              <div className="mt-1 text-xs text-slate-400">Welcome aboard</div>
-            </div>
-          </div>
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#08090e] overflow-hidden text-white select-none">
+      {/* Background ambient lighting */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,_rgba(139,92,246,0.18),transparent_55%),radial-gradient(circle_at_50%_85%,_rgba(124,58,237,0.12),transparent_50%)]" />
 
-          <div className="grid items-center gap-6 rounded-[28px] border border-violet-400/20 bg-slate-950/80 p-4 shadow-[0_0_30px_rgba(139,92,246,0.14)] backdrop-blur-md sm:p-5 lg:grid-cols-[0.82fr_1.18fr] lg:p-6">
-            <div className="relative mx-auto flex h-52 w-52 items-center justify-center rounded-full border border-violet-400/30 bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.25),transparent_38%),radial-gradient(circle_at_bottom,_rgba(52,211,153,0.14),transparent_35%),#0A0D14] p-2 shadow-[0_0_40px_rgba(139,92,246,0.25)] sm:h-60 sm:w-60">
+      {/* Portrait card */}
+      <div className="animate-splash-card relative z-10 w-full max-w-[380px] sm:max-w-[410px] rounded-[32px] sm:rounded-[36px] border border-violet-500/25 bg-[#0c0d15]/95 p-6 sm:p-8 shadow-[0_25px_70px_-15px_rgba(139,92,246,0.35),0_0_0_1px_rgba(139,92,246,0.12)] backdrop-blur-xl flex flex-col items-center text-center">
+        {/* Subtle top inner gradient sheen */}
+        <div className="pointer-events-none absolute inset-0 rounded-[32px] sm:rounded-[36px] bg-[radial-gradient(ellipse_at_top,_rgba(139,92,246,0.16),transparent_65%)]" />
+
+        {/* Minimal branding badge */}
+        <div className="relative z-10 mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3.5 py-1 shadow-sm">
+          <BrandLogo mode="mark" className="h-4 w-4" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-violet-300">
+            Fitflow
+          </span>
+        </div>
+
+        {/* Profile image container */}
+        <div className="relative z-10 mb-4 flex items-center justify-center">
+          <div className="animate-avatar-glow relative h-36 w-36 sm:h-44 sm:w-44 rounded-full p-1 bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-500 shadow-xl">
+            <div className="h-full w-full rounded-full overflow-hidden bg-slate-950 p-0.5">
               <img
-                src={profilePhoto}
-                alt="Er. Manish Kumar Yadav"
-                className="h-full w-full rounded-full object-cover object-center ring-4 ring-violet-500/30"
+                src={avatarSrc}
+                alt="Er. Manish Kumar"
+                onError={() => setAvatarSrc(profilePhotoFallback)}
+                className="h-full w-full rounded-full object-cover object-top"
               />
             </div>
-
-            <div className="space-y-4 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Software Development Engineer
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-black tracking-tight text-white sm:text-4xl">
-                  Er. Manish Kumar Yadav
-                </h2>
-                <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.28em] text-violet-200/80">
-                  Peter-GYM
-                </p>
-              </div>
-
-              <p className="mx-auto max-w-xl text-sm text-slate-300 lg:mx-0">
-                “Building smarter fitness experiences through technology.”
-              </p>
-
-              <div className="mt-5 space-y-3">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-slate-400">
-                  <span>Welcome</span>
-                  <span>{countdown}s</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-violet-400 to-emerald-400 transition-all duration-1000"
-                    style={{ width: `${(countdown / 3) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={advance}
-                  className="btn-secondary border-violet-400/30 bg-violet-500/10 text-violet-100 hover:border-violet-300/60"
-                >
-                  Skip Intro
-                </button>
-                <button type="button" onClick={advance} className="btn-primary">
-                  Continue to Website
-                </button>
-              </div>
-            </div>
           </div>
+        </div>
+
+        {/* Name */}
+        <h1 className="relative z-10 text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          Er. Manish Kumar
+        </h1>
+
+        {/* Professional Title */}
+        <div className="relative z-10 mt-2 inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3.5 py-1 text-xs font-semibold tracking-wide text-violet-200">
+          <Sparkles className="h-3 w-3 text-violet-400 shrink-0" />
+          <span>Software Development Engineer</span>
+        </div>
+
+        {/* Tagline */}
+        <p className="relative z-10 mt-3.5 text-sm text-slate-300/90 font-normal leading-relaxed italic max-w-[310px]">
+          “Building smarter fitness experiences through technology.”
+        </p>
+
+        {/* Countdown progress bar */}
+        <div className="relative z-10 w-full mt-6 space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-medium tracking-wider text-slate-400">
+            <span className="flex items-center gap-1.5 text-violet-300/80">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+              </span>
+              Redirecting to platform
+            </span>
+            <span className="font-mono text-xs font-semibold text-white/90">{countdown}s</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-violet-500 via-purple-500 to-emerald-400 transition-all duration-1000 ease-linear"
+              style={{ width: `${(countdown / 3) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="relative z-10 w-full mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={advance}
+            className="btn-secondary py-2.5 text-xs font-semibold border-violet-500/25 bg-white/5 text-violet-200 hover:bg-violet-500/15 hover:border-violet-400/50 transition-all active:scale-95"
+          >
+            Skip Intro
+          </button>
+          <button
+            type="button"
+            onClick={advance}
+            className="btn-primary py-2.5 text-xs font-semibold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 transition-all active:scale-95"
+          >
+            Continue
+          </button>
         </div>
       </div>
     </div>
@@ -1219,6 +1242,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
               ? firebaseUser.email.slice(0, 2).toUpperCase()
               : "GU"),
           gymId: profile?.gymId || "gym_1",
+          phone: profile?.phone || "+91 9988776655",
         };
 
         localStorage.setItem("gymflow-user", JSON.stringify(session));
@@ -1266,6 +1290,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
               ? result.user.email.slice(0, 2).toUpperCase()
               : "GU"),
           gymId: profile?.gymId || "gym_1",
+          phone: profile?.phone || demoMatch?.phone || "+91 9988776655",
         };
 
         localStorage.setItem("gymflow-user", JSON.stringify(session));
@@ -1287,6 +1312,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       role: demoMatch.role,
       avatar: demoMatch.avatar,
       gymId: demoMatch.gymId,
+      phone: demoMatch.phone,
     };
 
     localStorage.setItem("gymflow-user", JSON.stringify(session));
@@ -2622,22 +2648,17 @@ function MembershipsPage() {
       : null;
   });
 
-  const [selectedPlanId, setSelectedPlanId] = useState<"monthly" | "annual">(
-    "annual",
-  );
+  const plans = membershipPlans as PlanRecord[];
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("quarterly");
   const [paymentState, setPaymentState] = useState<
     "idle" | "processing" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [lastNotificationResult, setLastNotificationResult] = useState<NotificationDeliveryResult | null>(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
-  const plans = membershipPlans as PlanRecord[];
-  const monthlyPlan = plans.find((p) => p.id === "monthly")!;
-  const annualPlan = plans.find((p) => p.id === "annual")!;
-  const selectedPlan = selectedPlanId === "annual" ? annualPlan : monthlyPlan;
-  const selectedPrice =
-    selectedPlanId === "annual"
-      ? annualPlan.pricing!.annual
-      : monthlyPlan.pricing!.monthly;
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[0];
+  const selectedPrice = selectedPlan.price;
 
   const handlePurchase = async () => {
     if (!user) {
@@ -2648,18 +2669,19 @@ function MembershipsPage() {
     setErrorMessage("");
 
     try {
-      const durationDays = selectedPlanId === "annual" ? 365 : 30;
+      const durationDays = selectedPlan.durationDays || (selectedPlan.id === "annual" ? 365 : selectedPlan.id === "half_yearly" ? 180 : selectedPlan.id === "quarterly" ? 90 : 30);
       const expiryDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
         .toISOString()
         .slice(0, 10);
       const startDate = new Date().toISOString().slice(0, 10);
+      const referenceId = `PLAN-${Date.now()}`;
 
       // Save to Firebase Firestore if enabled
       if (firebaseEnabled && db) {
         await setDoc(
           doc(db, "users", user.id),
           {
-            membershipPlan: selectedPlan.name,
+            membershipPlan: `${selectedPlan.name} Plan`,
             membershipStart: startDate,
             membershipEnd: expiryDate,
             membershipAmount: selectedPrice,
@@ -2672,8 +2694,8 @@ function MembershipsPage() {
 
       // Persist locally so the UI reflects the new plan immediately
       const persistedPlan = {
-        planId: selectedPlanId,
-        planName: selectedPlan.name,
+        planId: selectedPlan.id,
+        planName: `${selectedPlan.name} Plan`,
         expiryDate,
         amount: selectedPrice,
       };
@@ -2692,7 +2714,7 @@ function MembershipsPage() {
         memberIndex >= 0 ? sharedMembers[memberIndex] : sharedMembers[0];
       const updatedMember: MemberRecord = {
         ...updatedMemberBase,
-        plan: selectedPlan.name,
+        plan: `${selectedPlan.name} Plan`,
         membershipStart: startDate,
         membershipEnd: expiryDate,
         status: "Active",
@@ -2714,11 +2736,32 @@ function MembershipsPage() {
         method: "UPI",
         date: startDate,
         status: "Paid",
-        reference: `PLAN-${Date.now()}`,
+        reference: referenceId,
         notes: `${selectedPlan.name} plan — expires ${expiryDate}`,
       };
       sharedPayments = [newPayment, ...sharedPayments];
       emitGymDataUpdate();
+
+      // Dispatch membership confirmation notification (Email + SMS) only after verification
+      try {
+        const notifResult = await sendMembershipConfirmation({
+          memberName: user.name,
+          memberEmail: user.email,
+          memberPhone: user.phone || "+91 9988776655",
+          memberId: user.id,
+          planId: selectedPlan.id,
+          planName: `${selectedPlan.name} Plan`,
+          amountPaid: selectedPrice,
+          startDate,
+          expiryDate,
+          paymentStatus: "Paid",
+          referenceId,
+          paymentMethod: "UPI",
+        });
+        setLastNotificationResult(notifResult);
+      } catch (notifErr) {
+        console.warn("Notice: Member confirmation notification logged:", notifErr);
+      }
 
       setActivePlan(persistedPlan);
       setPaymentState("success");
@@ -2756,19 +2799,28 @@ function MembershipsPage() {
 
       {/* Success / Error banners */}
       {paymentState === "success" && (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-200">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
-          <div>
-            <p className="font-semibold">Payment successful!</p>
-            <p className="text-xs text-emerald-300/80">
-              Your <span className="font-medium">{activePlan?.planName}</span>{" "}
-              membership is now active until{" "}
-              <span className="font-medium">{activePlan?.expiryDate}</span>.
-              Your dashboard has been updated.
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white">Payment Verified & Membership Activated!</p>
+              <p className="text-xs text-emerald-300/90 mt-0.5">
+                Your <span className="font-bold text-white">{activePlan?.planName}</span> is active until{" "}
+                <span className="font-bold text-white">{activePlan?.expiryDate}</span>. An official confirmation email & SMS notification have been dispatched.
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowConfirmationModal(true)}
+            className="btn-secondary py-1.5 px-3.5 text-xs font-bold shrink-0 self-start sm:self-auto border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25 flex items-center gap-1.5"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            View Official Confirmation Receipt
+          </button>
         </div>
       )}
+
       {paymentState === "error" && (
         <div className="flex items-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">
           <AlertCircle className="h-5 w-5 shrink-0 text-rose-400" />
@@ -2776,7 +2828,7 @@ function MembershipsPage() {
         </div>
       )}
 
-      {/* Festive Diwali Offer Banner */}
+      {/* Festive Offer Banner */}
       <DiwaliOfferBanner
         user={{
           id: user?.id || "guest",
@@ -2791,141 +2843,115 @@ function MembershipsPage() {
         }}
       />
 
-      {/* Plan cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Monthly Plan */}
-        <div
-          className={`panel relative flex flex-col gap-4 p-5 transition-all ${
-            selectedPlanId === "monthly"
-              ? "ring-2 ring-gym-accent/50"
-              : "hover:ring-1 hover:ring-gym-border"
-          }`}
-        >
-          {isActive("monthly") && (
-            <span className="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
-              Current Plan
-            </span>
-          )}
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
-              Monthly
-            </p>
-            <div className="mt-2 flex items-end gap-1">
-              <p className="text-4xl font-bold text-gym-text">₹600</p>
-              <p className="mb-1 text-sm text-gym-muted">/month</p>
-            </div>
-            <p className="mt-1 text-sm text-gym-muted">
-              Full gym access. No long-term commitment.
-            </p>
-          </div>
+      {/* All 4 Plan cards in responsive grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {plans.map((plan) => {
+          const isSelected = selectedPlanId === plan.id;
+          const isCurrentActive = isActive(plan.id);
 
-          <ul className="space-y-2">
-            {monthlyPlan.benefits.map((benefit) => (
-              <li
-                key={benefit}
-                className="flex items-center gap-2.5 text-sm text-gym-text/80"
-              >
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-gym-accent" />
-                {benefit}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-auto flex gap-2">
-            <button
-              type="button"
-              className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition ${
-                selectedPlanId === "monthly"
-                  ? "border-gym-accent/50 bg-gym-accent/10 text-gym-accent"
-                  : "border-gym-border bg-gym-panel text-gym-muted hover:border-gym-accent/40 hover:text-gym-text"
+          return (
+            <div
+              key={plan.id}
+              className={`panel relative flex flex-col gap-4 p-5 transition-all ${
+                isSelected
+                  ? "ring-2 ring-violet-400/70 shadow-[0_0_25px_rgba(139,92,246,0.25)]"
+                  : "hover:ring-1 hover:ring-gym-border"
               }`}
-              onClick={() => {
-                setSelectedPlanId("monthly");
-                setPaymentState("idle");
-              }}
             >
-              {selectedPlanId === "monthly" ? "✓ Selected" : "Select Monthly"}
-            </button>
-          </div>
-        </div>
+              {/* Badge */}
+              {plan.id === "annual" && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-3 py-0.5 text-[10px] font-bold text-white shadow-md">
+                  ⭐ Best Value
+                </span>
+              )}
+              {plan.id === "half_yearly" && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-0.5 text-[10px] font-bold text-white shadow-md">
+                  ⚡ Best for Results
+                </span>
+              )}
+              {plan.id === "quarterly" && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-[10px] font-bold text-white shadow-md">
+                  🔥 Most Popular
+                </span>
+              )}
 
-        {/* Annual Plan — Best Value */}
-        <div
-          className={`panel relative flex flex-col gap-4 p-5 transition-all ${
-            selectedPlanId === "annual"
-              ? "ring-2 ring-violet-400/60"
-              : "hover:ring-1 hover:ring-gym-border"
-          }`}
-        >
-          {/* Best Value badge */}
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-3.5 py-1 text-[11px] font-semibold text-white shadow-lg">
-            ⭐ Best Value
-          </span>
-          {isActive("annual") && (
-            <span className="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
-              Current Plan
-            </span>
-          )}
+              {isCurrentActive && (
+                <span className="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+                  Current Plan
+                </span>
+              )}
 
-          <div className="mt-2">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
-              Annual
-            </p>
-            <div className="mt-2 flex items-end gap-1">
-              <p className="text-4xl font-bold text-gym-text">₹6,000</p>
-              <p className="mb-1 text-sm text-gym-muted">/year</p>
-            </div>
-            <p className="mt-1 text-sm text-gym-muted">
-              Full access, all year. Best price guaranteed.
-            </p>
-            <span className="mt-2 inline-block rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
-              💰 Save ₹1,200 per year vs monthly
-            </span>
-          </div>
+              <div className="mt-1">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-gym-muted">
+                  {plan.duration}
+                </p>
+                <div className="mt-2 flex items-end gap-1">
+                  <p className="text-3xl font-bold text-gym-text">
+                    ₹{plan.price.toLocaleString("en-IN")}
+                  </p>
+                  <p className="mb-1 text-xs text-gym-muted">/{plan.duration.toLowerCase()}</p>
+                </div>
+                <p className="mt-1 text-xs text-gym-muted leading-relaxed min-h-[36px]">
+                  {plan.description}
+                </p>
 
-          <ul className="space-y-2">
-            {annualPlan.benefits.map((benefit) => (
-              <li
-                key={benefit}
-                className={`flex items-center gap-2.5 text-sm ${
-                  benefit.startsWith("Save")
-                    ? "font-medium text-amber-300"
-                    : "text-gym-text/80"
-                }`}
-              >
-                <CheckCircle2
-                  className={`h-4 w-4 shrink-0 ${
-                    benefit.startsWith("Save")
-                      ? "text-amber-400"
-                      : "text-violet-400"
+                {plan.id === "annual" && (
+                  <span className="mt-2 inline-block rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-300">
+                    💰 Save ₹1,200 vs monthly
+                  </span>
+                )}
+                {plan.id === "half_yearly" && (
+                  <span className="mt-2 inline-block rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                    💰 Save ₹400 vs monthly
+                  </span>
+                )}
+                {plan.id === "quarterly" && (
+                  <span className="mt-2 inline-block rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium text-violet-300">
+                    💰 Save ₹100 vs monthly
+                  </span>
+                )}
+                {plan.id === "monthly" && (
+                  <span className="mt-2 inline-block rounded-full border border-gym-border bg-gym-panel px-2.5 py-0.5 text-[10px] font-medium text-gym-muted">
+                    No long-term commitment
+                  </span>
+                )}
+              </div>
+
+              <ul className="space-y-2 mt-2">
+                {plan.benefits.map((benefit) => (
+                  <li
+                    key={benefit}
+                    className="flex items-center gap-2 text-xs text-gym-text/80"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-gym-accent" />
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto pt-3">
+                <button
+                  type="button"
+                  className={`w-full rounded-xl border py-2 text-xs font-semibold transition ${
+                    isSelected
+                      ? "border-violet-400/60 bg-violet-500/15 text-violet-200"
+                      : "border-gym-border bg-gym-panel text-gym-muted hover:border-violet-400/40 hover:text-gym-text"
                   }`}
-                />
-                {benefit}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-auto flex gap-2">
-            <button
-              type="button"
-              className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition ${
-                selectedPlanId === "annual"
-                  ? "border-violet-400/50 bg-violet-500/10 text-violet-200"
-                  : "border-gym-border bg-gym-panel text-gym-muted hover:border-violet-400/40 hover:text-gym-text"
-              }`}
-              onClick={() => {
-                setSelectedPlanId("annual");
-                setPaymentState("idle");
-              }}
-            >
-              {selectedPlanId === "annual" ? "✓ Selected" : "Select Annual"}
-            </button>
-          </div>
-        </div>
+                  onClick={() => {
+                    setSelectedPlanId(plan.id);
+                    setPaymentState("idle");
+                  }}
+                >
+                  {isSelected ? "✓ Selected" : `Select ${plan.name}`}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Checkout panel */}
-      <div className="panel p-5">
+      <div className="panel p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gym-muted">
@@ -2935,20 +2961,18 @@ function MembershipsPage() {
               {selectedPlan.name} Plan
             </h2>
             <p className="mt-0.5 text-sm text-gym-muted">
-              {selectedPlanId === "annual"
-                ? "12 months · Full access · Best value"
-                : "1 month · Full access · Cancel anytime"}
+              {selectedPlan.duration} · Full gym access · Instant SMS & Email Confirmation
             </p>
           </div>
           <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 px-4 sm:px-5 py-3 text-left sm:text-right w-full sm:w-auto">
             <p className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80">
-              Total
+              Total Payable
             </p>
             <p className="mt-1 text-2xl font-bold text-gym-text">
               {formatCurrency(selectedPrice)}
             </p>
             <p className="text-xs text-gym-muted">
-              {selectedPlanId === "annual" ? "per year" : "per month"}
+              for {selectedPlan.duration}
             </p>
           </div>
         </div>
@@ -2963,22 +2987,40 @@ function MembershipsPage() {
             {paymentState === "processing" ? (
               <>
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Processing…
+                Processing & Verifying Payment…
               </>
             ) : paymentState === "success" ? (
               <>
-                <CheckCircle2 className="h-4 w-4" /> Membership Active
+                <CheckCircle2 className="h-4 w-4" /> Membership Active & Confirmed
               </>
             ) : (
-              `Pay ${formatCurrency(selectedPrice)} now`
+              `Pay ${formatCurrency(selectedPrice)} via UPI`
             )}
           </button>
+
+          {paymentState === "success" && (
+            <button
+              type="button"
+              onClick={() => setShowConfirmationModal(true)}
+              className="btn-secondary w-full sm:w-auto justify-center gap-2 text-violet-300 border-violet-400/40 bg-violet-500/10 hover:bg-violet-500/20"
+            >
+              <Mail className="h-4 w-4" />
+              View Email & SMS Receipt
+            </button>
+          )}
+
           <span className="text-xs text-gym-muted">
-            Saves plan, expiry date, and payment record — updates your dashboard
-            instantly.
+            Includes automated confirmation email & SMS to registered contact upon payment verification.
           </span>
         </div>
       </div>
+
+      {/* Confirmation Receipt / Preview Modal */}
+      <MembershipConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        result={lastNotificationResult}
+      />
     </div>
   );
 }
@@ -5165,21 +5207,21 @@ function MemberDashboardPage() {
 
   return (
     <div key={refreshKey} className="space-y-6">
-      <div className="panel p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="panel p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-gym-muted">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.24em] text-gym-muted">
               Welcome back
             </p>
-            <h1 className="mt-2 text-3xl font-semibold">{profile.name}</h1>
+            <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold">{profile.name}</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gym-accent/15 text-xl font-semibold text-gym-accent">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gym-accent/15 text-lg sm:text-xl font-semibold text-gym-accent shrink-0">
               {profile.avatar}
             </div>
-            <div>
-              <p className="font-medium text-gym-text">{displayPlan}</p>
-              <p className="text-sm text-gym-muted">
+            <div className="min-w-0">
+              <p className="font-medium text-gym-text text-sm sm:text-base truncate">{displayPlan}</p>
+              <p className="text-xs sm:text-sm text-gym-muted truncate">
                 Expires on {displayExpiry}
               </p>
             </div>
@@ -5197,7 +5239,7 @@ function MemberDashboardPage() {
         onOfferClaimed={() => setRefreshKey((k) => k + 1)}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Current plan"
           value={displayPlan}

@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 import { db, firebaseEnabled } from "./firebase";
 import type { FestiveType, OfferRecord, OfferStatus, PaymentRecord } from "../types";
+import { sendMembershipConfirmation } from "./notificationService";
 
 export const OFFERS_UPDATED_EVENT = "fitflow-offers-updated";
 const LOCAL_STORAGE_KEY = "fitflow-active-offers-v3";
@@ -518,6 +519,29 @@ export async function recordOfferPayment({
         detail: { payment: newPayment, plan: persistedPlan },
       })
     );
+  }
+
+  // 6. Send professional membership confirmation (Email + SMS) only after verification
+  try {
+    await sendMembershipConfirmation({
+      memberName: userName,
+      memberEmail: userEmail,
+      memberPhone: "+91 9988776655",
+      memberId: userId,
+      planId: offer.planId,
+      planName: planNameFormatted,
+      amountPaid: offer.discountedPrice,
+      startDate: today,
+      expiryDate,
+      paymentStatus: "Paid",
+      referenceId: txRef,
+      paymentMethod,
+      isOffer: true,
+      offerName: offer.name,
+      savings: savingAmount,
+    });
+  } catch (notifErr) {
+    console.warn("Notice: Member confirmation notification logged:", notifErr);
   }
 
   return { payment: newPayment, membership: persistedPlan };

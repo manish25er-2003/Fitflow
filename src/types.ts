@@ -48,9 +48,11 @@ export interface PlanRecord {
   benefits: string[];
   sessionLimit?: number;
   status: PlanStatus;
+  durationDays?: number;
   pricing?: {
     monthly: number;
     quarterly: number;
+    semiAnnual?: number;
     annual: number;
   };
 }
