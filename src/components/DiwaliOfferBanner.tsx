@@ -490,7 +490,8 @@ export function FestiveOfferCheckoutModal({
 }
 
 /**
- * Individual Premium Festive Offer Card (Amazon / Flipkart Deal Inspired)
+ * Individual Compact Festive Offer Card
+ * Shows: festival name, offer title, plan, discounted price, original price, savings, expiry, Claim Offer button.
  */
 export function FestiveOfferCard({
   offer,
@@ -510,94 +511,72 @@ export function FestiveOfferCard({
 
   return (
     <div
-      className={`group relative rounded-2xl sm:rounded-3xl border ${theme.borderAccent} bg-gradient-to-b from-[#161226] via-[#100d1c] to-[#0c0a14] p-4 sm:p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_45px_rgba(139,92,246,0.22)] flex flex-col justify-between overflow-hidden`}
+      className={`group relative rounded-2xl border ${theme.borderAccent} bg-gradient-to-b from-[#161226] via-[#100d1c] to-[#0c0a14] p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(139,92,246,0.18)] flex flex-col justify-between overflow-hidden`}
     >
-      {/* Ambient background glow & sparkles */}
+      {/* Ambient sparkles */}
       <FestiveSparkles festiveType={offer.festiveType} isPaused={isTabHidden} />
 
-      <div>
-        {/* Deal Tag & Green Discount Badge (Flipkart/Amazon Signature) */}
-        <div className="relative z-10 flex items-center justify-between gap-2 mb-3">
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/20 border border-rose-500/40 text-[10px] font-black uppercase tracking-wider text-rose-300">
-            <Flame className="h-3 w-3 text-rose-400 animate-pulse" />
-            <span>{theme.dealTag}</span>
+      <div className="space-y-2">
+        {/* Top row: Deal tag + Discount badge */}
+        <div className="relative z-10 flex items-center justify-between gap-1.5">
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-[9px] font-black uppercase tracking-wider text-rose-300">
+            <Flame className="h-2.5 w-2.5 text-rose-400 animate-pulse" />
+            <span className="truncate max-w-[80px]">{festivalName}</span>
           </div>
-
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-xs tracking-wider shadow-sm">
-            <span>{discountPercent}% OFF</span>
-          </div>
-        </div>
-
-        {/* Centerpiece Festival Visual */}
-        <div className="relative z-10 my-3 flex items-center justify-center">
-          <div className="relative p-3 rounded-2xl bg-black/40 border border-white/10 group-hover:border-amber-400/30 transition-all duration-300 shadow-inner">
-            <FestivalArtworkRenderer
-              festiveType={offer.festiveType || "diwali"}
-              size={64}
-              isPaused={isTabHidden}
-            />
+          <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-[10px] tracking-wide shrink-0">
+            {discountPercent}% OFF
           </div>
         </div>
 
-        {/* Festival Chip & Offer Title */}
-        <div className="relative z-10 text-center space-y-1">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${theme.badgeBg}`}>
-            <span>{theme.festIcon}</span>
-            <span>{festivalName} Special</span>
-          </span>
-
-          <h3 className="text-base sm:text-xl font-black text-white group-hover:text-amber-200 transition line-clamp-1">
+        {/* Offer title */}
+        <div className="relative z-10">
+          <h3 className="text-sm font-black text-white group-hover:text-amber-200 transition line-clamp-1 leading-tight">
             {offer.name}
           </h3>
-
-          <p className="text-xs text-purple-300 font-semibold">
-            {offer.planName} Membership • {offer.durationDays} Days Full Access
+          <p className="text-[10px] text-purple-300 font-semibold mt-0.5 truncate">
+            {offer.planName} Plan • {offer.durationDays}d
           </p>
-
-          <p className="text-[11px] text-gym-muted line-clamp-2 pt-1 leading-relaxed">
+          <p className="text-[10px] text-gym-muted line-clamp-1 mt-0.5 leading-snug">
             {offer.description}
           </p>
         </div>
 
-        {/* Amazon / Flipkart Deal Price Block */}
-        <div className="relative z-10 mt-4 pt-3 border-t border-white/10 text-center">
-          <div className="flex items-baseline justify-center gap-2">
-            <span className="text-3xl font-black text-amber-300 tracking-tight">
+        {/* Price block */}
+        <div className="relative z-10 pt-2 border-t border-white/10">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-amber-300 tracking-tight">
               ₹{offer.discountedPrice}
             </span>
-            <span className="text-sm text-gym-muted line-through font-medium decoration-rose-400/80">
+            <span className="text-xs text-gym-muted line-through font-medium decoration-rose-400/70">
               ₹{offer.originalPrice}
             </span>
+            <span className="ml-auto text-[10px] font-bold text-emerald-400 shrink-0">
+              Save ₹{savingAmount}
+            </span>
           </div>
-
-          <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs">
-            <span>Save ₹{savingAmount}</span>
-            <span className="text-[10px] text-emerald-400/80">({discountPercent}% saved)</span>
-          </div>
-
-          {/* Expiry Callout */}
-          <div className="mt-2.5 flex items-center justify-center gap-1 text-[11px] text-amber-200/70 font-medium">
-            <Clock className="h-3 w-3 text-amber-400" />
-            <span>Valid till {offer.expiryDate}</span>
+          {/* Expiry */}
+          <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-200/70 font-medium">
+            <Clock className="h-2.5 w-2.5 text-amber-400 shrink-0" />
+            <span>Expires {offer.expiryDate}</span>
           </div>
         </div>
       </div>
 
       {/* Action Button */}
-      <div className="relative z-10 mt-5 pt-3 border-t border-white/5">
+      <div className="relative z-10 mt-2.5 pt-2 border-t border-white/5">
         {isAlreadyClaimed ? (
-          <div className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span>Offer Active on Your Plan</span>
+          <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center justify-center gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Offer Active</span>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => onClaim(offer)}
-            className={`${theme.button} w-full py-3 px-4 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-98 transition`}
+            className={`${theme.button} w-full py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 active:scale-98 transition`}
           >
-            <ShoppingBag className="h-4 w-4" />
-            <span>Claim Offer / Buy Now</span>
+            <ShoppingBag className="h-3.5 w-3.5" />
+            <span>Claim Offer</span>
           </button>
         )}
       </div>
@@ -680,21 +659,21 @@ export function DiwaliOfferBanner({
   return (
     <section className="w-full space-y-4 animate-in fade-in duration-300">
       {/* Header bar with Amazon / Flipkart Mega Sale styling */}
-      <div className="panel relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-gradient-to-r from-[#17122b] via-[#120f22] to-[#1a1329] overflow-hidden">
+      <div className="panel relative p-3 sm:p-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#17122b] via-[#120f22] to-[#1a1329] overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-amber-500/20 border border-amber-400/40 text-[11px] font-black uppercase tracking-wider text-amber-300">
               <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-spin" />
               <span>FESTIVAL MEGA DEALS • LIMITED TIME</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white mt-1.5 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex flex-wrap items-center gap-2">
               <span>Festival Dhamaka Offers</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-extrabold">
                 Up to {Math.max(...activeValidOffers.map((o) => Math.round(((o.originalPrice - o.discountedPrice) / o.originalPrice) * 100)))}% OFF
               </span>
             </h2>
-            <p className="text-xs sm:text-sm text-gym-muted mt-0.5">
-              Limited-period discounts on Diwali, Dussehra, Navratri, and New Year gym memberships. Verified instant activation.
+            <p className="text-xs text-gym-muted mt-0.5">
+              Exclusive festive discounts on gym memberships. Instant activation.
             </p>
           </div>
 
@@ -747,7 +726,7 @@ export function DiwaliOfferBanner({
       )}
 
       {/* Responsive Grid of Premium Offer Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {displayedOffers.map((offer) => (
           <FestiveOfferCard
             key={offer.id}

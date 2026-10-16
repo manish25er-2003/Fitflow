@@ -423,12 +423,12 @@ function SplashIntroPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,_rgba(139,92,246,0.18),transparent_55%),radial-gradient(circle_at_50%_85%,_rgba(124,58,237,0.12),transparent_50%)]" />
 
       {/* Portrait card */}
-      <div className="animate-splash-card relative z-10 w-full max-w-[380px] sm:max-w-[410px] rounded-[32px] sm:rounded-[36px] border border-violet-500/25 bg-[#0c0d15]/95 p-6 sm:p-8 shadow-[0_25px_70px_-15px_rgba(139,92,246,0.35),0_0_0_1px_rgba(139,92,246,0.12)] backdrop-blur-xl flex flex-col items-center text-center">
+      <div className="animate-splash-card relative z-10 w-full max-w-[340px] sm:max-w-[380px] rounded-[28px] sm:rounded-[32px] border border-violet-500/25 bg-[#0c0d15]/95 p-5 sm:p-7 shadow-[0_20px_60px_-15px_rgba(139,92,246,0.35),0_0_0_1px_rgba(139,92,246,0.12)] backdrop-blur-xl flex flex-col items-center text-center">
         {/* Subtle top inner gradient sheen */}
-        <div className="pointer-events-none absolute inset-0 rounded-[32px] sm:rounded-[36px] bg-[radial-gradient(ellipse_at_top,_rgba(139,92,246,0.16),transparent_65%)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-[28px] sm:rounded-[32px] bg-[radial-gradient(ellipse_at_top,_rgba(139,92,246,0.16),transparent_65%)]" />
 
         {/* Minimal branding badge */}
-        <div className="relative z-10 mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3.5 py-1 shadow-sm">
+        <div className="relative z-10 mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 shadow-sm">
           <BrandLogo mode="mark" className="h-4 w-4" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-violet-300">
             Fitflow
@@ -436,12 +436,12 @@ function SplashIntroPage() {
         </div>
 
         {/* Profile image container */}
-        <div className="relative z-10 mb-4 flex items-center justify-center">
-          <div className="animate-avatar-glow relative h-36 w-36 sm:h-44 sm:w-44 rounded-full p-1 bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-500 shadow-xl">
-            <div className="h-full w-full rounded-full overflow-hidden bg-slate-950 p-0.5">
+        <div className="relative z-10 mb-3 flex items-center justify-center">
+          <div className="animate-avatar-glow relative h-28 w-28 sm:h-36 sm:w-36 rounded-full p-[3px] bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-500 shadow-xl">
+            <div className="h-full w-full rounded-full overflow-hidden bg-slate-950">
               <img
                 src={avatarSrc}
-                alt="Er. Manish Kumar"
+                alt="Er. Manish Kumar Yadav"
                 onError={() => setAvatarSrc(profilePhotoFallback)}
                 className="h-full w-full rounded-full object-cover object-top"
               />
@@ -450,23 +450,23 @@ function SplashIntroPage() {
         </div>
 
         {/* Name */}
-        <h1 className="relative z-10 text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
-          Er. Manish Kumar
+        <h1 className="relative z-10 text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          Er. Manish Kumar Yadav
         </h1>
 
         {/* Professional Title */}
-        <div className="relative z-10 mt-2 inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3.5 py-1 text-xs font-semibold tracking-wide text-violet-200">
+        <div className="relative z-10 mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-0.5 text-[11px] font-semibold tracking-wide text-violet-200">
           <Sparkles className="h-3 w-3 text-violet-400 shrink-0" />
           <span>Software Development Engineer</span>
         </div>
 
         {/* Tagline */}
-        <p className="relative z-10 mt-3.5 text-sm text-slate-300/90 font-normal leading-relaxed italic max-w-[310px]">
-          “Building smarter fitness experiences through technology.”
+        <p className="relative z-10 mt-2.5 text-xs text-slate-300/90 font-normal leading-relaxed italic max-w-[280px]">
+          "Building smarter fitness experiences through technology."
         </p>
 
         {/* Countdown progress bar */}
-        <div className="relative z-10 w-full mt-6 space-y-2">
+        <div className="relative z-10 w-full mt-5 space-y-1.5">
           <div className="flex items-center justify-between text-[11px] font-medium tracking-wider text-slate-400">
             <span className="flex items-center gap-1.5 text-violet-300/80">
               <span className="relative flex h-2 w-2">
@@ -486,18 +486,18 @@ function SplashIntroPage() {
         </div>
 
         {/* Action buttons */}
-        <div className="relative z-10 w-full mt-5 grid grid-cols-2 gap-3">
+        <div className="relative z-10 w-full mt-4 grid grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={advance}
-            className="btn-secondary py-2.5 text-xs font-semibold border-violet-500/25 bg-white/5 text-violet-200 hover:bg-violet-500/15 hover:border-violet-400/50 transition-all active:scale-95"
+            className="btn-secondary py-2 text-xs font-semibold border-violet-500/25 bg-white/5 text-violet-200 hover:bg-violet-500/15 hover:border-violet-400/50 transition-all active:scale-95"
           >
             Skip Intro
           </button>
           <button
             type="button"
             onClick={advance}
-            className="btn-primary py-2.5 text-xs font-semibold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 transition-all active:scale-95"
+            className="btn-primary py-2 text-xs font-semibold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 transition-all active:scale-95"
           >
             Continue
           </button>
@@ -720,71 +720,60 @@ function LandingPage() {
 
       <main>
         {location.pathname === "/home" && showInstallPrompt && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#05070b]/80 px-4 py-6 backdrop-blur-sm">
-            <div className="relative w-full max-w-md overflow-hidden rounded-[30px] border border-violet-400/20 bg-[#0b1017]/90 p-4 shadow-[0_0_0_1px_rgba(139,92,246,0.15),0_30px_80px_rgba(15,17,24,0.7)] ring-1 ring-white/10 sm:p-5">
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-[#05070b]/70 px-3 pb-5 pt-4 sm:py-6 backdrop-blur-sm">
+            <div className="relative w-full max-w-sm overflow-hidden rounded-[22px] border border-violet-400/20 bg-[#0b1017]/95 p-3.5 shadow-[0_0_0_1px_rgba(139,92,246,0.12),0_20px_60px_rgba(15,17,24,0.8)]">
+              {/* Close */}
               <button
                 type="button"
                 onClick={handleDismissInstallPrompt}
                 aria-label="Close install prompt"
-                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+                className="absolute right-2.5 top-2.5 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:text-white"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
 
-              <div className="flex items-center justify-center pt-2">
-                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] border border-violet-400/30 bg-[#090A0F] shadow-[0_0_26px_rgba(139,92,246,0.35)]">
+              {/* Icon + title row */}
+              <div className="flex items-center gap-3 pr-8">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-violet-400/30 bg-[#090A0F] shadow-[0_0_18px_rgba(139,92,246,0.3)]">
                   <img
                     src="/icons/icon-192x192.png"
                     alt="Peter-GYM Icon"
-                    className="h-full w-full rounded-[20px] object-cover"
+                    className="h-full w-full rounded-[12px] object-cover"
                   />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black tracking-tight text-white">
+                    Install Peter-GYM
+                  </h3>
+                  <p className="mt-0.5 text-[11px] leading-snug text-slate-400">
+                    Add to home screen for instant access
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-5 text-center">
-                <h3 className="text-2xl font-black tracking-tight text-white">
-                  Install Peter-GYM
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Add Peter-GYM to your home screen for quick access to your gym
-                  dashboard anytime.
-                </p>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <button
-                  type="button"
-                  onClick={handleInstallApp}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-500 to-emerald-400 px-4 py-3 text-sm font-bold text-[#090A0F] shadow-[0_0_24px_rgba(139,92,246,0.38)] transition hover:brightness-110 active:scale-[0.99]"
-                >
-                  Install App
-                </button>
-
+              {/* Buttons */}
+              <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={handleDismissInstallPrompt}
-                  className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-violet-400/30 hover:text-white"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:text-white"
                 >
-                  Maybe Later
+                  Not now
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="flex-[2] inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-emerald-400 px-4 py-2 text-xs font-bold text-[#090A0F] shadow-[0_0_16px_rgba(139,92,246,0.35)] transition hover:brightness-110 active:scale-[0.99]"
+                >
+                  Install App
                 </button>
               </div>
 
               {!installPromptEvent && (
-                <div className="mt-5 rounded-2xl border border-violet-400/15 bg-violet-500/5 p-3 text-center text-xs text-slate-300">
-                  Install isn’t supported on this browser yet. Open the browser
-                  menu and choose “Add to Home Screen” or “Install App”.
-                </div>
+                <p className="mt-2 text-center text-[10px] text-slate-500">
+                  Browser menu → “Add to Home Screen”
+                </p>
               )}
-
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={handleShowInstallPromptAgain}
-                  className="text-[11px] uppercase tracking-[0.18em] text-violet-200/80 transition hover:text-violet-100"
-                >
-                  Show reminder again
-                </button>
-              </div>
             </div>
           </div>
         )}
